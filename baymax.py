@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 import random 
 import os.path
+import datetime
+from utils.utils import Utils
 
 
 with open('./intents/intents.json') as f: 
@@ -15,7 +17,8 @@ documents = []
 
 # apis and others
 open_weather_api = '81204e86088679091c3fda217e34a1ca'
-
+# utils
+utils = Utils(open_weather_api)
 
 for intent in intents['intents']:
     for pattern in intent['patterns']:
@@ -92,7 +95,7 @@ else:
     baymax = tf.keras.models.load_model(model_path)
 
 
-def generate_response(user_input):
+def generate_response(user_input,accuracy_stats=False):
 
     input_words = user_input.lower().split()
     input_bag = [0]*len(words)
@@ -104,16 +107,52 @@ def generate_response(user_input):
     tag = classes[most_probable_class_index]
     confidence = results[0][most_probable_class_index]
 
+    if accuracy_stats == True:
+        print(f'accuracy : {confidence}')
+
     responses = []
 
     for intent in intents['intents']:
         if intent['id'] == tag:
             responses = intent['response']
 
-    return random.choice(responses),confidence
+    if tag=='time':
+        # returns the current time as response
+        current_time = datetime.datetime.now().strftime("%H:%M")
+        replaced_responses = [
+            response.replace("[current time]",current_time)
+              for response in responses]
+        return random.choice(replaced_responses)
+    
+    if tag=='date':
+        # returns the current date as response
+        current_date = datetime.datetime.now().strftime("%m-%d-%Y")
+        replaced_responses = [
+            response.replace("[today_date]",current_date)
+              for response in responses]
+        return random.choice(replaced_responses)
+    
+    if tag=='weather':
+        # returns the current weather as response
+        current_weather = utils.fetch_weather('bokaro')
+        replaced_responses = [
+            response.replace("[weather_info]",current_weather)
+              for response in responses]
+        return random.choice(replaced_responses)
+    
+    if tag=='wikis':
+        # returns information by fetching wikipedia
+        fetched_info = utils.get_wiki_data(user_input)
+        replaced_responses = [
+            response.replace("[result_from_wikis]",fetched_info)
+            for response in responses]
+        return random.choice(replaced_responses)
+
+    return random.choice(responses)
+
 
 while True:
+
     user_input = input('=> ')
-    response = generate_response(user_input)
-    print(f'=> {response[0]}')
-    print(f'confidence == {response[1]}')
+    response = generate_response(user_input,accuracy_stats=True)
+    print(f'=> {response}')
