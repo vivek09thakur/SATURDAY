@@ -3,8 +3,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# intents file
-intents/
 
 # C extensions
 *.so

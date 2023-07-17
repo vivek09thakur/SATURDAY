@@ -7,7 +7,7 @@ import datetime
 from utils.utils import Utils
 
 
-with open('./intents/intents.json') as f: 
+with open('D:/Projects/nlp-datasets/intents_recognition/baymax/intents/intents.json') as f: 
     intents = json.load(f)  # loads intents
 
 # golabal variable
