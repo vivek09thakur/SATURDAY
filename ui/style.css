@@ -5,7 +5,7 @@
 }
 
 body{
-    background: #000000ff;
+    background: #f1f1f1;
     font-family: 'Poppins', sans-serif;
 }
 
@@ -13,9 +13,31 @@ body{
     position: fixed;
     width: 20vw;
     height: 100vh;
-    background: #171717ff;
-    border-right: 1px solid #3d3d3dff;
+    background: #f1f1f1;
+    border-right: 1px solid #d6d5d5;
 }
-.statsbar h3{
-    color: rgb(182, 157, 222);
+
+#time{
+    border: none !important;
+    font-size: 1.05em !important;
+    background:  #1a73e8;
+    color: #f1f1f1 !important;
+}
+#date , #time{
+    font-size: 13px;
+    color: #1a73e8;
+    padding: 10px 20px;
+    margin: 5px 5px auto ;
+    width: 50%;
+    letter-spacing: 1px;
+    border: 1px solid #dfdfdf;
+    border-radius: .3em;
+}
+.main-section{
+    width: auto;
+    height: 100vh;
+    margin-left: 20vw;
+}
+.main-section #title{
+    padding: 20px;
 }

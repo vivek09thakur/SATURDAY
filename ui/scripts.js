@@ -1,7 +1,9 @@
-function showDateTime(){
+function showDateTime() {
     const currentDate = new Date()
-    const dateElement = document.getElementById('date_time');
-    dateElement.textContent = currentDate
+    const timeElement = document.getElementById('time')
+    const dateElement = document.getElementById('date')
+    dateElement.textContent = currentDate.toLocaleDateString() 
+    timeElement.textContent = currentDate.toLocaleTimeString()
 }
 
 showDateTime()
