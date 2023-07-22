@@ -1,0 +1,21 @@
+*{
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+body{
+    background: #000000ff;
+    font-family: 'Poppins', sans-serif;
+}
+
+.statsbar{
+    position: fixed;
+    width: 20vw;
+    height: 100vh;
+    background: #171717ff;
+    border-right: 1px solid #3d3d3dff;
+}
+.statsbar h3{
+    color: rgb(182, 157, 222);
+}
