@@ -2,42 +2,46 @@
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    font-family: 'Poppins', sans-serif;
 }
 
 body{
-    background: #f1f1f1;
-    font-family: 'Poppins', sans-serif;
+    background: #18181a;
+    color:rgba(215, 215, 215, 0.929)
 }
 
 .statsbar{
     position: fixed;
     width: 20vw;
     height: 100vh;
-    background: #f1f1f1;
-    border-right: 1px solid #d6d5d5;
+    background: #09090b;
+    border-right: 1px solid rgba(72, 72, 72, 0.5);
 }
 
 #time{
     border: none !important;
     font-size: 1.05em !important;
-    background:  #1a73e8;
-    color: #f1f1f1 !important;
+    background:  #f1f1f1;
+    color: #09090b !important;
 }
+
 #date , #time{
     font-size: 13px;
-    color: #1a73e8;
-    padding: 10px 20px;
-    margin: 5px 5px auto ;
+    color: #f1f1f1;
+    padding: 8px 10px;
+    margin: 8px 5px auto ;
     width: 50%;
     letter-spacing: 1px;
-    border: 1px solid #dfdfdf;
+    border: 1px solid  rgba(72, 72, 72, 0.5);
     border-radius: .3em;
 }
+
 .main-section{
     width: auto;
     height: 100vh;
     margin-left: 20vw;
 }
+
 .main-section #title{
     padding: 20px;
 }
