@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from utils.utils import Utils
 
-with open('D:/Projects/NLP_Training_datasets/intents_recognition/baymax/intents/intents.json') as f: 
+with open('./intents/intents.json') as f: 
     intents = json.load(f)  # loads intents
 
 # golabal variable
