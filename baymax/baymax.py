@@ -23,7 +23,7 @@ class baymax:
             self.intents = json.load(f)
         pass
     
-    def load_intents(self):
+    def load_data(self):
         for intent in self.intents['intents']:
             for pattern in intent['patterns']:
                 words_in_pattern = pattern.lower().split()
@@ -34,7 +34,7 @@ class baymax:
         self.words = sorted(list(set(self.words)))
         self.classes = sorted(list(set(self.classes)))
         
-    def preprocess_data(self):
+    def process_data(self):
         for doc in self.documents:
             bag = [1 if word in doc[0] else 0 for word in self.words]
             output_row = [0]*len(self.classes)
@@ -77,7 +77,7 @@ class baymax:
         self.model.save(self.model_path)
         
         
-    def load_or_build_model(self):
+    def create_model(self):
         if os.path.isfile(self.model_path):
             self.model = tf.keras.models.load_model(self.model_path)
         else:
