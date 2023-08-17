@@ -7,12 +7,12 @@ accuracy_stats = True
 
 if __name__ =='__main__':
     
-    baymax = baymax(intent_file,model_name,open_weather_api,accuracy_stats)
-    baymax.load_intents()
-    baymax.preprocess_data()
-    baymax.load_or_build_model()
+    Baymax = baymax(intent_file,model_name,open_weather_api,accuracy_stats)
+    Baymax.load_intents()
+    Baymax.preprocess_data()
+    Baymax.load_or_build_model()
     
     while True:
         user_input = input('=> ')
-        response = baymax.generate_response(user_input)
+        response = Baymax.generate_response(user_input)
         print(f'=> {response}')

@@ -19,12 +19,12 @@ class baymax:
         self.model = None
         self.utils = Utils(self.open_weather_api)
         self.accuracy_stats = accuracy_stats
+        with open(self.intents_file_path) as f: 
+            self.intents = json.load(f)
         pass
     
     def load_intents(self):
-        with open(self.intents_file_path) as f: 
-            intents = json.load(f)
-        for intent in intents['intents']:
+        for intent in self.intents['intents']:
             for pattern in intent['patterns']:
                 words_in_pattern = pattern.lower().split()
                 self.words.extend(words_in_pattern)
@@ -89,10 +89,11 @@ class baymax:
         input_words = user_input.lower().split()
         input_bag = [0]*len(self.words)
         for w in input_words:
-            input_bag[self.words.index(w)] = 1
+            if w in self.words:
+                input_bag[self.words.index(w)] = 1
             
-        results = self.model.predict(np.array([input_bag]),verbose=0)[0]
-        most_probable_class_index = np.argmax(results)
+        results = self.model.predict(np.array([input_bag]),verbose=0)
+        most_probable_class_index = np.argmax(results[0])
         tag = self.classes[most_probable_class_index]
         confidence = results[0][most_probable_class_index]
         
@@ -103,7 +104,7 @@ class baymax:
         
         for intent in self.intents['intents']:
             if intent['id'] == tag:
-                responses = intent['responses']
+                responses = intent['response']
                 
         if tag == 'weather':
             # fetch weather
@@ -137,4 +138,4 @@ class baymax:
                 for response in responses]
             return random.choice(replaced_responses)
                     
-        return random.choice(responses)   
+        return random.choice(responses)
