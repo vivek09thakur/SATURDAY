@@ -91,7 +91,7 @@ class baymax:
         for w in input_words:
             input_bag[self.words.index(w)] = 1
             
-        results = self.model.predict(np.array([input_bag]))[0]
+        results = self.model.predict(np.array([input_bag]),verbose=0)[0]
         most_probable_class_index = np.argmax(results)
         tag = self.classes[most_probable_class_index]
         confidence = results[0][most_probable_class_index]
