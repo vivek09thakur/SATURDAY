@@ -152,6 +152,7 @@ def generate_response(user_input,accuracy_stats=False):
     return random.choice(responses)
 
 
+
 while True:
 
     user_input = input('=> ')
