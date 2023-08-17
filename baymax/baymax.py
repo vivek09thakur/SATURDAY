@@ -6,7 +6,7 @@ from .support import Utils
 import os.path
 import json
 
-class baymax:
+class BAYMAX:
     
     def __init__(self,intents_file_path,model_path,open_weather_api,accuracy_stats=False):
         self.intents_file_path = intents_file_path

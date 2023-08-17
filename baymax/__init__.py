@@ -1,2 +1,2 @@
 from .support import Utils
-from .baymax import baymax
+from .baymax import BAYMAX

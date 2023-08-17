@@ -1,18 +1,18 @@
-from baymax.baymax import baymax
+from baymax.baymax import BAYMAX
 
-Baymax = baymax(
-        intent_file = './dataset/intent/intents.json',
-        model_name = './baymax/baymax.h5',
-        open_weather_api = '81204e86088679091c3fda217e34a1ca',
-        accuracy_stats = True
-    )
+intents = './dataset/intent/intents.json'
+model = './baymax/baymax.h5'
+open_weather_api = '81204e86088679091c3fda217e34a1ca'
+accuracy_stats = True
 
-Baymax.load_data()
-Baymax.process_data()
-Baymax.create_model()
+baymax = BAYMAX(intents,model,open_weather_api,accuracy_stats)
+
+baymax.load_data()
+baymax.process_data()
+baymax.create_model()
 
 if __name__ =='__main__':
     while True:
         user_input = input('=> ')
-        response = Baymax.generate_response(user_input)
+        response = baymax.generate_response(user_input)
         print(f'=> {response}')
