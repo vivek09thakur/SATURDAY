@@ -1,10 +1,10 @@
 import random
+import datetime
 import numpy as np
 import tensorflow as tf
-import datetime
+from baymax.support import Utils
 import os.path
 import json
-from utils.utils import Utils
 
 class baymax:
     
