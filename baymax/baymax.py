@@ -1,9 +1,9 @@
-import json
+import random
 import numpy as np
 import tensorflow as tf
 import datetime
 import os.path
-import random
+import json
 from utils.utils import Utils
 
 class baymax:
@@ -84,7 +84,8 @@ class baymax:
             self.build_model()
             self.train_model()
             
-    def get_response(self,user_input):
+    def generate_response(self,user_input):
+        
         input_words = user_input.lower().split()
         input_bag = [0]*len(self.words)
         for w in input_words:
@@ -104,6 +105,36 @@ class baymax:
             if intent['id'] == tag:
                 responses = intent['responses']
                 
-        return random.choice(responses)
+        if tag == 'weather':
+            # fetch weather
+            current_weather = self.utils.fetch_weather(user_input)
+            replaced_responses = [
+                response.replace("[weather_info]",current_weather)
+                for response in responses]
+            return random.choice(replaced_responses)
         
+        if tag == 'time':
+            # returns the current time as response
+            current_time = datetime.datetime.now().strftime("%H:%M")
+            replaced_responses = [
+                response.replace("[current time]",current_time)
+                for response in responses]
+            return random.choice(replaced_responses)
         
+        if tag=='date':
+            # returns the current date as response
+            current_date = datetime.datetime.now().strftime("%m-%d-%Y")
+            replaced_responses = [
+                response.replace("[today_date]",current_date)
+                for response in responses]
+            return random.choice(replaced_responses)
+        
+        if tag=='wikis':
+            # returns information by fetching wikipedia
+            fetched_info = self.utils.get_wiki_data(user_input)
+            replaced_responses = [
+                response.replace("[result_from_wikis]",fetched_info)
+                for response in responses]
+            return random.choice(replaced_responses)
+                    
+        return random.choice(responses)   
