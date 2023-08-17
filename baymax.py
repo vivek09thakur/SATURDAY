@@ -1,10 +1,12 @@
-import datetime
 import json
-import os.path
 import random
 import numpy as np
 import tensorflow as tf
+import datetime
+import os.path
+
 from utils.utils import Utils
+# from voice_controls import Controls
 
 with open('./intents/intents.json') as f: 
     intents = json.load(f)  # loads intents
@@ -155,3 +157,4 @@ while True:
     user_input = input('=> ')
     response = generate_response(user_input,accuracy_stats=True)
     print(f'=> {response}')
+    # Controls.speak(response)
