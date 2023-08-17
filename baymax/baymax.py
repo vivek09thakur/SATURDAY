@@ -2,7 +2,7 @@ import random
 import datetime
 import numpy as np
 import tensorflow as tf
-from baymax.support import Utils
+from .support import Utils
 import os.path
 import json
 

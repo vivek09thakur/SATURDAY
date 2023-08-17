@@ -1,7 +1,7 @@
 from baymax.baymax import baymax
 
-intent_file = '/dataset/intent/intents.json'
-model_name = '/baymax/baymax.h5'
+intent_file = 'dataset/intent/intents.json'
+model_name = 'baymax/baymax.h5'
 open_weather_api = '81204e86088679091c3fda217e34a1ca'
 accuracy_stats = True
 
