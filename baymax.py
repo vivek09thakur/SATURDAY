@@ -5,7 +5,7 @@ import tensorflow as tf
 import datetime
 import os.path
 
-from utils.utils import Utils
+from baymax.support import Utils
 # from voice_controls import Controls
 
 with open('./intents/intents.json') as f: 
