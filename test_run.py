@@ -1,5 +1,4 @@
 from baymax.baymax import BAYMAX
-import speech_recognition as sr
 
 intents = './dataset/intent/intents.json'
 model = './baymax/baymax.h5'
@@ -12,12 +11,10 @@ if __name__ =='__main__':
     
     baymax.load_data()
     baymax.process_data()
-    baymax.create_model()
-    recog = sr.Recognizer()
+    baymax.create_model()    
     
     while True:
-        # main-loop
-        user_input = baymax.get_input(recog)
+        user_input = input('=> ')
         response = baymax.generate_response(user_input)
         print(f'=> {response}')
         baymax.speak(response)
