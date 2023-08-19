@@ -3,6 +3,8 @@ import datetime
 import numpy as np
 import tensorflow as tf
 from .support import Utils
+import speech_recognition as sr
+import pyttsx3
 import os.path
 import json
 
@@ -21,6 +23,7 @@ class BAYMAX:
         self.accuracy_stats = accuracy_stats
         with open(self.intents_file_path) as f: 
             self.intents = json.load(f)
+        self.engine = pyttsx3.init()
         pass
     
     def load_data(self):
@@ -139,3 +142,28 @@ class BAYMAX:
             return random.choice(replaced_responses)
                     
         return random.choice(responses)
+    
+    def get_input(self,recognizer):
+        voice_input = None
+        with sr.Microphone() as source:
+            recognizer.adjust_for_ambient_noise(source)
+            audio = recognizer.listen(source)
+        try:
+            voice_input = recognizer.recognize_google(audio)
+            voice_input = str(voice_input)
+            print(f'=> {voice_input}')
+        except sr.UnknownValueError:
+            pass
+        except sr.RequestError:
+            print('Network error.')
+        except sr.WaitTimeoutError:
+            pass
+        except Exception as e:
+            print(e)
+        return voice_input.lower()
+            
+    def speak(self,text):
+        self.engine.setProperty('rate', 150)
+        self.engine.setProperty('volume', 1.0)
+        self.engine.say(text)
+        self.engine.runAndWait()
