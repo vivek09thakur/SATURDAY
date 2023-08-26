@@ -80,7 +80,7 @@ class BAYMAX:
         self.model.save(self.model_path)
         
         
-    def create_model(self):
+    def initalize(self):
         if os.path.isfile(self.model_path):
             self.model = tf.keras.models.load_model(self.model_path)
         else:

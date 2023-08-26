@@ -12,7 +12,7 @@ if __name__ =='__main__':
     
     baymax.load_data()
     baymax.process_data()
-    baymax.create_model()    
+    baymax.initalize()    
     
     while True:
         user_input = input('=> ')
