@@ -1,16 +1,16 @@
 from baymax.baymax import BAYMAX
-from controls.controls import AUTOMATION_CONTROLS
+from controls.controls import CONTROLS
 
 params = [
-    './dataset/intent/intents.json',
-    './baymax/baymax.h5',
-    '81204e86088679091c3fda217e34a1ca',
-    './dataset/user/contacts.csv',
-    './dataset/user/web_data.csv'
+    './dataset/intent/intents.json', # intents.json path
+    './baymax/baymax.h5', # model path
+    '81204e86088679091c3fda217e34a1ca', # open weather api key
+    './dataset/user/contacts.csv', # contacts data
+    './dataset/user/web_data.csv' # web data
 ]
 
 baymax = BAYMAX(params[0],params[1],params[2],accuracy_stats=True)
-baymax_automate = AUTOMATION_CONTROLS(params[3],params[4])
+baymax_automate = CONTROLS(params[3],params[4])
 
 if __name__=='__main__':
     
