@@ -1,5 +1,4 @@
 from baymax.baymax import BAYMAX
-from controls.controls import CONTROLS
 
 params = [
     './dataset/intent/intents.json', # intents.json path
@@ -10,7 +9,6 @@ params = [
 ]
 
 baymax = BAYMAX(params[0],params[1],params[2],accuracy_stats=True)
-baymax_automate = CONTROLS(params[3],params[4])
 
 if __name__=='__main__':
     
@@ -23,3 +21,6 @@ if __name__=='__main__':
         response = baymax.generate_response(user_input)
         print(f'=> {response}')
         baymax.speak(response)
+        # TODO:
+        # if user_input:
+            # baymax.execute_command(user_input)
