@@ -6,6 +6,7 @@ import speech_recognition as sr
 import pyttsx3
 import os.path
 import json
+import time
 
 from .support import Utils
 from .automation_controls import AUTOMATION_CONTROLS
@@ -170,3 +171,18 @@ class BAYMAX:
         self.engine.setProperty('volume', 1.0)
         self.engine.say(text)
         self.engine.runAndWait()
+        
+    def type_response(self,text):
+        print('=> ',end='')
+        for char in text:
+            print(char,end='',flush=True)
+            time.sleep(0.0005)
+            
+    def introduce(self):
+        current_time = datetime.datetime.now().strftime("%H:%M")        
+        if int(current_time.split(':')[0]) < 12:
+            self.speak(f'Good Morning sir. How can I help you today?')
+        elif int(current_time.split(':')[0]) < 16:
+            self.speak(f'Good Afternoon sir. How can I help you today?')
+        elif int(current_time.split(':')[0]) < 20:
+            self.speak(f'Good Evening sir. How can I help you today?')

@@ -9,6 +9,7 @@ params = [
 ]
 
 baymax = BAYMAX(params[0],params[1],params[2],accuracy_stats=True)
+baymax.introduce()
 
 if __name__=='__main__':
     
@@ -19,5 +20,5 @@ if __name__=='__main__':
     while True:
         user_input = input('=> ')
         response = baymax.generate_response(user_input)
-        print(f'=> {response}')
+        baymax.type_response(response)
         baymax.speak(response)
