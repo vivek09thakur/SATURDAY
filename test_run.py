@@ -21,6 +21,3 @@ if __name__=='__main__':
         response = baymax.generate_response(user_input)
         print(f'=> {response}')
         baymax.speak(response)
-        # TODO:
-        # if user_input:
-            # baymax.execute_command(user_input)
