@@ -37,6 +37,11 @@ class AUTOMATION_CONTROLS:
         for name in self.contact_names:
             if name in user_input:
                 return name
+    
+    def search_site_names(self,user_input):
+        for name in self.site_names:
+            if name in user_input:
+                return name
         
     def open_site(self,site_url):
         try:
