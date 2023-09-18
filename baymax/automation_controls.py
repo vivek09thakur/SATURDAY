@@ -32,13 +32,17 @@ class AUTOMATION_CONTROLS:
         for word in self.junk_words:
             user_input = user_input.replace(word,'')
         return user_input.strip()
+    
+    def search_contact_names(self,user_input):
+        for name in self.contact_names:
+            if name in user_input:
+                return name
         
     def open_site(self,site_url):
         try:
             webbrowser.open(site_url)
         except:
             print('Error opening site')
-    
     
     def search_web(self,user_input):
         query = self.clear_query(user_input)
@@ -54,6 +58,14 @@ class AUTOMATION_CONTROLS:
             self.open_site(self.site_urls[site_index])
         else:
             print('Site not found')
+            
+    def send_message(self,user_input):
+        query = self.clear_query(user_input)
+        if query in self.contact_names:
+            contact_index = self.contact_names.index(query)
+            self.open_site(f'https://web.whatsapp.com/send?phone={self.contact_numbers[contact_index]}')
+        else:
+            print('Contact not found')
 
             
 # Test code
@@ -65,3 +77,5 @@ if __name__ == '__main__':
     # test_control.search_web('baymax search about apples')
     # test_control.play_video('baymax play chammak challo')
     # test_control.search_location('baymax where is india')
+    # test_control.send_message('mom')
+    # print(test_control.search_contact_names('baymax search about mom'))s
