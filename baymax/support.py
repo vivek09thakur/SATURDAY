@@ -1,4 +1,6 @@
-import requests , wikipedia
+import webbrowser
+import requests
+import wikipedia
 
 class Utils:
 
@@ -44,3 +46,57 @@ class Utils:
             return wiki_result
         except Exception:
             return "Sorry, I couldn't find any information about it."
+        
+
+class text_processing:
+    
+    def __init__(self,site_names,contact_names):
+        self.site_names = site_names
+        self.contact_names = contact_names
+        self.junk_words = ['baymax','search','about','google','play','youtube',
+            'open','website','site','surf','browse','internet',
+            'wikipedia','where','is','location of']
+        
+    def clear_query(self,user_input):
+        for word in self.junk_words:
+            user_input = user_input.replace(word,'')
+        return user_input.strip()
+    
+    def search_contact_names(self,user_input):
+        for name in self.contact_names:
+            if name in user_input:
+                return name
+    
+    def search_site_names(self,user_input):
+        for name in self.site_names:
+            if name in user_input:
+                return name
+            
+class web_support:
+    
+    def open_url(self,url):
+        try:
+            webbrowser.open(url)
+        except Exception as e:
+            print('Sorry, I could not open the url. Please try again. {}'.format(e))
+    
+    def play_video(self,query):
+        try:
+            url = 'https://www.youtube.com/results?search_query={}'.format(query)
+            self.open_url(url)
+        except Exception as e:
+            print('Sorry, I could not play the video. Please try again. {}'.format(exit))
+            
+    def search_web(self,query):
+        try:
+            url = 'https://www.google.com/search?q={}'.format(query)
+            self.open_url(url)
+        except Exception as e:
+            print('Sorry, I could not search the web. Please try again. {}'.format(e))
+        
+    def search_location(self,query):
+        try:
+            url = 'https://www.google.com/maps/place/{}'.format(query)
+            self.open_url(url)
+        except Exception as e:
+            print('Sorry, I could not search the location. Please try again. {}'.format(e))
