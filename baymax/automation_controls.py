@@ -51,9 +51,9 @@ class AUTOMATION_CONTROLS:
 if __name__ == '__main__':
     test_parameters = ['./dataset/user/contacts.csv','./dataset/user/web_data.csv']
     test_control = AUTOMATION_CONTROLS(test_parameters[0],test_parameters[1])
-    # test_control.surf_web('hey baymax open google')
-    # test_control.search_web('baymax search about apples')
-    # test_control.play_video('baymax play chammak challo')
-    # test_control.search_location('baymax where is india')
+    test_control.surf_web('hey baymax open google')
+    test_control.search_web('baymax search about apples')
+    test_control.play_video('baymax play chammak challo')
+    test_control.search_location('baymax where is india')
     # test_control.send_message('mom')
     # print(test_control.search_contact_names('baymax search about mom'))
