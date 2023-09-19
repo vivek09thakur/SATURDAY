@@ -25,25 +25,18 @@ class AUTOMATION_CONTROLS:
             for row in reader:
                 self.site_names.append(row[0])
                 self.site_urls.append(row[1])
-        
-    def base_command(self,user_input):
-        user_input = self.text_processor.clear_query(user_input)
-        if user_input in self.contact_names:
-            contact_index = self.contact_names.index(user_input)
-            return self.contact_numbers[contact_index]
-        elif user_input in self.site_names:
-            site_index = self.site_names.index(user_input)
-            return self.site_urls[site_index]
-        else:
-            return user_input
     
     def search_web(self,user_input):
         query = self.text_processor.clear_query(user_input)
-        self.utils.open_url(f'https://www.google.com/search?q={query}')
+        self.web.search_web(query)
     
     def search_location(self,user_input):
         query = self.text_processor.clear_query(user_input)
-        self.utils.open_url(f'https://www.google.com/maps/place/{query}')
+        self.web.search_location(query)
+        
+    def play_video(self,user_input):
+        query = self.text_processor.clear_query(user_input)
+        self.web.play_video(query)
         
     def surf_web(self,user_input):
         if user_input in self.site_names:
@@ -58,7 +51,6 @@ class AUTOMATION_CONTROLS:
 if __name__ == '__main__':
     test_parameters = ['./dataset/user/contacts.csv','./dataset/user/web_data.csv']
     test_control = AUTOMATION_CONTROLS(test_parameters[0],test_parameters[1])
-    print(test_control.base_command('hey baymax call mom'))
     # test_control.surf_web('hey baymax open google')
     # test_control.search_web('baymax search about apples')
     # test_control.play_video('baymax play chammak challo')
