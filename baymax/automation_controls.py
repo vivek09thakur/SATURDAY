@@ -1,6 +1,6 @@
 import csv
-from .support import web_support
-from .support import text_processing
+from support import web_support
+from support import text_processing
 
 class AUTOMATION_CONTROLS:
     
