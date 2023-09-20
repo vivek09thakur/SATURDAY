@@ -39,21 +39,23 @@ class AUTOMATION_CONTROLS:
         self.web.play_video(query)
         
     def surf_web(self,user_input):
-        if user_input in self.site_names:
-            site_index = self.site_names.index(user_input)
-            self.web.open_url(self.site_urls[site_index])
-        else:
-            print('Site not found')
+        seached_site = self.text_processor.search_site_names(user_input)
+        # print(f'command found opening -- {seached_site}') # for debugging
+        try:
+            index = self.site_names.index(seached_site)
+            self.web.open_url(self.site_urls[index]) # for debugging
+        except Exception as e:
+            print(e)
             
 
             
 # Test code
-if __name__ == '__main__':
-    test_parameters = ['./dataset/user/contacts.csv','./dataset/user/web_data.csv']
-    test_control = AUTOMATION_CONTROLS(test_parameters[0],test_parameters[1])
-    test_control.surf_web('hey baymax open google')
-    test_control.search_web('baymax search about apples')
-    test_control.play_video('baymax play chammak challo')
-    test_control.search_location('baymax where is india')
+# if __name__ == '__main__':
+#     test_parameters = ['./dataset/user/contacts.csv','./dataset/user/web_data.csv']
+#     test_control = AUTOMATION_CONTROLS(test_parameters[0],test_parameters[1])
+#     test_control.surf_web('hey baymax open google')
+    # test_control.search_web('baymax search about apples')
+    # test_control.play_video('baymax play chammak challo')
+    # test_control.search_location('baymax where is india')
     # test_control.send_message('mom')
     # print(test_control.search_contact_names('baymax search about mom'))
