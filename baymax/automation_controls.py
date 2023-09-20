@@ -1,6 +1,5 @@
-import csv
-from support import web_support
-from support import text_processing
+from support import text_processing, web_support
+
 
 class AUTOMATION_CONTROLS:
     
@@ -14,17 +13,16 @@ class AUTOMATION_CONTROLS:
         self.web = web_support()
         self.text_processor = text_processing(self.site_names,self.contact_names)
         
-        with open(self.contact_file,'r') as f:
-            reader = csv.reader(f)
-            for row in reader:
-                self.contact_names.append(row[0])
-                self.contact_numbers.append(row[1])
-        
-        with open(self.webdata_file,'r') as f:
-            reader = csv.reader(f)
-            for row in reader:
-                self.site_names.append(row[0])
-                self.site_urls.append(row[1])
+        self.contact_names,self.contact_numbers = self.text_processor.read_csv_file(
+            self.contact_file,
+            self.contact_names,
+            self.contact_numbers
+        )
+        self.site_names,self.site_urls = self.text_processor.read_csv_file(
+            self.webdata_file,
+            self.site_names,
+            self.site_urls
+        )
     
     def search_web(self,user_input):
         query = self.text_processor.clear_query(user_input)

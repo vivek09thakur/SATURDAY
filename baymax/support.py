@@ -1,6 +1,8 @@
+import csv
 import webbrowser
 import requests
 import wikipedia
+
 
 class Utils:
 
@@ -53,9 +55,11 @@ class text_processing:
     def __init__(self,site_names,contact_names):
         self.site_names = site_names
         self.contact_names = contact_names
-        self.junk_words = ['baymax','search','about','google','play','youtube',
+        self.junk_words = [
+            'baymax','search','about','google','play','youtube',
             'open','website','site','surf','browse','internet',
-            'wikipedia','where','is','location of']
+            'wikipedia','where','is','location of'
+        ]
         
     def clear_query(self,user_input):
         for word in self.junk_words:
@@ -72,6 +76,15 @@ class text_processing:
             if name in user_input:
                 return name
             
+    def read_csv_file(self,csv_file,list_1,list_2):
+        with open(csv_file,'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                list_1.append(row[0])
+                list_2.append(row[1])
+            return list_1,list_2
+        
+        
 class web_support:
     
     def open_url(self,url):
