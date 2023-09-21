@@ -39,8 +39,8 @@ class BAYMAX:
         self.engine = pyttsx3.init()
         # TASK CATEGORIES
         self.task_catogeries = {
-            ('search','about','google','about'):self.automation_controls.search_web,
-            ('search','location','where','is','location','of'):self.automation_controls.search_location,
+            ('search about','google about'):self.automation_controls.search_web,
+            ('search','locate','where is','location of'):self.automation_controls.search_location,
             ('play','video','song','music'):self.automation_controls.play_video,
             ('open','surf','website','site','check','have i got any'):self.automation_controls.surf_web,
         }
