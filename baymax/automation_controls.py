@@ -1,4 +1,4 @@
-from support import text_processing, web_support
+from .support import text_processing, web_support
 
 
 class AUTOMATION_CONTROLS:
@@ -13,13 +13,11 @@ class AUTOMATION_CONTROLS:
         self.web = web_support()
         self.text_processor = text_processing(self.site_names,self.contact_names)
         
-        # Get the contact names and numbers from the csv file
         self.contact_names,self.contact_numbers = self.text_processor.read_csv_file(
             self.contact_file,
             self.contact_names,
             self.contact_numbers
         )
-        # Get the site names and urls from the csv file
         self.site_names,self.site_urls = self.text_processor.read_csv_file(
             self.webdata_file,
             self.site_names,
@@ -40,14 +38,13 @@ class AUTOMATION_CONTROLS:
         
     def surf_web(self,user_input):
         seached_site = self.text_processor.search_site_names(user_input)
-        # print(f'command found opening -- {seached_site}') # for debugging
         try:
             index = self.site_names.index(seached_site)
             self.web.open_url(self.site_urls[index]) # for debugging
         except Exception as e:
-            print(e)
+            print('ERROR OCCURED => {}'.format(e))
             
-
+        
             
 # Test code
 # if __name__ == '__main__':
@@ -59,3 +56,4 @@ class AUTOMATION_CONTROLS:
     # test_control.search_location('baymax where is india')
     # test_control.send_message('mom')
     # print(test_control.search_contact_names('baymax search about mom'))
+    # test_control.execute_command('baymax search about quantum physics in physics')

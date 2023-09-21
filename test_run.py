@@ -8,7 +8,7 @@ params = [
     './dataset/user/web_data.csv' # web data
 ]
 
-baymax = BAYMAX(params[0],params[1],params[2],accuracy_stats=True)
+baymax = BAYMAX(params[0],params[1],params[2],params[3],params[4],accuracy_stats=True)
 baymax.introduce()
 
 if __name__=='__main__':
@@ -24,4 +24,4 @@ if __name__=='__main__':
             baymax.type_response(response)
             baymax.speak(response)
         # TODO : # to add a method that will classify the task and execute it using ML techniques
-        #    baymax.execute_command(user_input,classify_task = True) # Like this
+            baymax.execute_command(user_input)

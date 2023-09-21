@@ -14,20 +14,36 @@ from .automation_controls import AUTOMATION_CONTROLS
 
 class BAYMAX:
     
-    def __init__(self,intents_file_path,model_path,open_weather_api,accuracy_stats=False):
+    def __init__(self,intents_file_path,model_path,open_weather_api,contacts_file,web_data,
+                 accuracy_stats=False):
+        # INITIALIZING PARAMETERS
         self.intents_file_path = intents_file_path
         self.model_path = model_path
         self.open_weather_api = open_weather_api
+        self.contact_file = contacts_file
+        self.webdata_file = web_data
+        self.accuracy_stats = accuracy_stats
+        # INITIALIZING VARIABLES
         self.words = []
         self.classes = []
         self.documents = []
         self.training_data = []
         self.model = None
+        # INITIALIZING OBJECTS
         self.utils = Utils(self.open_weather_api)
-        self.accuracy_stats = accuracy_stats
+        self.automation_controls = AUTOMATION_CONTROLS(self.contact_file,self.webdata_file)
+        # INITIALIZING INTENTS DATA
         with open(self.intents_file_path) as f: 
             self.intents = json.load(f)
+        # INITIALIZING SPEECH ENGINE
         self.engine = pyttsx3.init()
+        # TASK CATEGORIES
+        self.task_catogeries = {
+            ('search','about','google','about'):self.automation_controls.search_web,
+            ('search','location','where','is','location','of'):self.automation_controls.search_location,
+            ('play','video','song','music'):self.automation_controls.play_video,
+            ('open','surf','website','site','check','have i got any'):self.automation_controls.surf_web,
+        }
         pass
     
     def load_data(self):
@@ -177,12 +193,33 @@ class BAYMAX:
         for char in text:
             print(char,end='',flush=True)
             time.sleep(0.0005)
+        print('\n')
             
-    def introduce(self):
-        current_time = datetime.datetime.now().strftime("%H:%M")        
+    def execute_command(self,user_input):
+        user_input = user_input.lower()
+        input_words = user_input.split()
+        try:
+            for task in self.task_catogeries.keys():
+                if any(word in input_words for word in task):
+                    self.task_catogeries[task](user_input)
+                    break
+                else:
+                    pass
+        except Exception:
+            pass
+                
+    def introduce(self):   
+        def wish_me_my_birthday(self):
+            my_bithday = datetime.datetime.strptime('06-05','%d-%m').date()
+            if datetime.datetime.now().month == my_bithday.month and datetime.datetime.now().day == my_bithday.day:
+                self.speak('Happy Birthday sir.')
+                
+        current_time = datetime.datetime.now().strftime("%H:%M")       
         if int(current_time.split(':')[0]) < 12:
             self.speak(f'Good Morning sir. How can I help you today?')
         elif int(current_time.split(':')[0]) < 16:
             self.speak(f'Good Afternoon sir. How can I help you today?')
         elif int(current_time.split(':')[0]) < 20:
             self.speak(f'Good Evening sir. How can I help you today?')
+            
+        wish_me_my_birthday(self)
