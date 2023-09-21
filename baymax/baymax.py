@@ -195,7 +195,7 @@ class BAYMAX:
             time.sleep(0.0005)
         print('\n')
             
-    def execute_command(self,user_input):
+    def execute_command(self,user_input,debug_mode=False):
         user_input = user_input.lower()
         input_words = user_input.split()
         try:
@@ -205,8 +205,10 @@ class BAYMAX:
                     break
                 else:
                     pass
-        except Exception:
+        except Exception as e:
             pass
+            if debug_mode == True:
+                print('ERROR OCCURED => {}'.format(e))
                 
     def introduce(self):   
         def wish_me_my_birthday(self):
