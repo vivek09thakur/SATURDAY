@@ -13,11 +13,13 @@ class AUTOMATION_CONTROLS:
         self.web = web_support()
         self.text_processor = text_processing(self.site_names,self.contact_names)
         
+        # Get the contact names and numbers from the csv file
         self.contact_names,self.contact_numbers = self.text_processor.read_csv_file(
             self.contact_file,
             self.contact_names,
             self.contact_numbers
         )
+        # Get the site names and urls from the csv file
         self.site_names,self.site_urls = self.text_processor.read_csv_file(
             self.webdata_file,
             self.site_names,
