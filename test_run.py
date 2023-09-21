@@ -24,4 +24,4 @@ if __name__=='__main__':
             baymax.type_response(response)
             baymax.speak(response)
         # TODO : # to add a method that will classify the task and execute it using ML techniques
-            baymax.execute_command(user_input)
+            baymax.execute_command(user_input,debug_mode=True)
