@@ -9,7 +9,6 @@ import json
 import time
 
 from .support import Utils
-from .automation_controls import AUTOMATION_CONTROLS
 
 
 class BAYMAX:
@@ -31,19 +30,11 @@ class BAYMAX:
         self.model = None
         # INITIALIZING OBJECTS
         self.utils = Utils(self.open_weather_api)
-        self.automation_controls = AUTOMATION_CONTROLS(self.contact_file,self.webdata_file)
         # INITIALIZING INTENTS DATA
         with open(self.intents_file_path) as f: 
             self.intents = json.load(f)
         # INITIALIZING SPEECH ENGINE
         self.engine = pyttsx3.init()
-        # TASK CATEGORIES
-        self.task_catogeries = {
-            ('search about','google about'):self.automation_controls.search_web,
-            ('search','locate','where is','location of'):self.automation_controls.search_location,
-            ('play','video','song','music'):self.automation_controls.play_video,
-            ('open','surf','website','site','check','have i got any'):self.automation_controls.surf_web,
-        }
         pass
     
     def load_data(self):
@@ -189,26 +180,10 @@ class BAYMAX:
         self.engine.runAndWait()
         
     def type_response(self,text):
-        print('=> ',end='')
+        print('\n=> ',end='')
         for char in text:
             print(char,end='',flush=True)
             time.sleep(0.0005)
-        print('\n')
-            
-    def execute_command(self,user_input,debug_mode=False):
-        user_input = user_input.lower()
-        input_words = user_input.split()
-        try:
-            for task in self.task_catogeries.keys():
-                if any(word in input_words for word in task):
-                    self.task_catogeries[task](user_input)
-                    break
-                else:
-                    pass
-        except Exception as e:
-            pass
-            if debug_mode == True:
-                print('ERROR OCCURED => {}'.format(e))
                 
     def introduce(self):   
         def wish_me_my_birthday(self):
