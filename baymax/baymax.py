@@ -180,17 +180,13 @@ class BAYMAX:
         self.engine.runAndWait()
         
     def type_response(self,text):
-        print('\n=> ',end='')
+        print('=> ',end='')
         for char in text:
             print(char,end='',flush=True)
             time.sleep(0.0005)
+        print()
                 
     def introduce(self):   
-        def wish_me_my_birthday(self):
-            my_bithday = datetime.datetime.strptime('06-05','%d-%m').date()
-            if datetime.datetime.now().month == my_bithday.month and datetime.datetime.now().day == my_bithday.day:
-                self.speak('Happy Birthday sir.')
-                
         current_time = datetime.datetime.now().strftime("%H:%M")       
         if int(current_time.split(':')[0]) < 12:
             self.speak(f'Good Morning sir. How can I help you today?')
@@ -199,4 +195,3 @@ class BAYMAX:
         elif int(current_time.split(':')[0]) < 20:
             self.speak(f'Good Evening sir. How can I help you today?')
             
-        wish_me_my_birthday(self)
