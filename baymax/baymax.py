@@ -13,15 +13,14 @@ from .support import Utils
 
 class BAYMAX:
     
-    def __init__(self,intents_file_path,model_path,open_weather_api,contacts_file,web_data,
-                 accuracy_stats=False):
+    def __init__(self,intents_file_path,model_path,open_weather_api,accuracy_stats=False):
         # INITIALIZING PARAMETERS
         self.intents_file_path = intents_file_path
         self.model_path = model_path
         self.open_weather_api = open_weather_api
-        self.contact_file = contacts_file
-        self.webdata_file = web_data
         self.accuracy_stats = accuracy_stats
+        # self.contact_file = contacts_file
+        # self.webdata_file = web_data
         # INITIALIZING VARIABLES
         self.words = []
         self.classes = []

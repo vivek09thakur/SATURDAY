@@ -8,7 +8,7 @@ params = [
     './dataset/user/web_data.csv' # web data
 ]
 
-baymax = BAYMAX(params[0],params[1],params[2],params[3],params[4],accuracy_stats=True)
+baymax = BAYMAX(params[0],params[1],params[2],accuracy_stats=True)
 baymax.introduce()
 
 if __name__=='__main__':
