@@ -36,7 +36,7 @@ class BAYMAX:
         self.engine = pyttsx3.init()
         pass
     
-    def load_data(self):
+    def process_training_data(self):
         for intent in self.intents['intents']:
             for pattern in intent['patterns']:
                 words_in_pattern = pattern.lower().split()
@@ -47,7 +47,6 @@ class BAYMAX:
         self.words = sorted(list(set(self.words)))
         self.classes = sorted(list(set(self.classes)))
         
-    def process_data(self):
         for doc in self.documents:
             bag = [1 if word in doc[0] else 0 for word in self.words]
             output_row = [0]*len(self.classes)
@@ -56,6 +55,11 @@ class BAYMAX:
             
         random.shuffle(self.training_data)
         
+        train_x = np.array([data[0] for data in self.training_data])
+        train_y = np.array([data[1] for data in self.training_data])
+        
+        return train_x,train_y
+    
     def build_model(self):
         self.model = tf.keras.Sequential([
             
@@ -79,24 +83,17 @@ class BAYMAX:
                     tf.keras.layers.Dense(len(self.classes), activation='softmax')
         ])
         
-        self.model.compile(optimizer='adam',
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
+        self.model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
         
-    def train_model(self):
-        train_x = np.array([data[0] for data in self.training_data])
-        train_y = np.array([data[1] for data in self.training_data])
-        self.model.fit(train_x,train_y,epochs=6000,batch_size=300,verbose=2)
-        self.model.save(self.model_path)
-        
-        
-    def create_model(self):
+    def train_model(self,train_x,train_y):
         if os.path.isfile(self.model_path):
             self.model = tf.keras.models.load_model(self.model_path)
         else:
             self.build_model()
-            self.train_model()
-            
+            self.model.fit(train_x,train_y,epochs=6000,batch_size=300,verbose=2)
+            self.model.save(self.model_path)
+        
+        
     def generate_response(self,user_input):
         
         input_words = user_input.lower().split()
