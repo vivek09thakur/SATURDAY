@@ -1,6 +1,7 @@
 from baymax.baymax import BAYMAX
 
-params = ['dataset/intent/intents.json', # intents.json path
+params = [
+    'dataset/intent/intents.json', # intents.json path
     'baymax/baymax.h5', # model path
     '81204e86088679091c3fda217e34a1ca', # open weather api key
 ]
@@ -19,4 +20,3 @@ if __name__=='__main__':
             response = baymax.generate_response(user_input)
             baymax.type_response(response)
             baymax.speak(response)
-        # TODO : # to add a method that will classify the task and execute it using ML techniques
