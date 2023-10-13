@@ -145,7 +145,7 @@ class BAYMAX:
                 for response in responses]
             return random.choice(replaced_responses)
                     
-        return random.choice(responses)
+        return random.choice(responses),tag
     
     def get_input(self,recognizer):
         voice_input = None
@@ -188,3 +188,5 @@ class BAYMAX:
         elif int(current_time.split(':')[0]) < 20:
             self.speak(f'Good Evening sir. How can I help you today?')
             
+    # def execute_command(self,user_input,intents,classify=True):
+    #     pass

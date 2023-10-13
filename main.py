@@ -16,6 +16,6 @@ if __name__=='__main__':
     while True:
         user_input = input('=> ')
         if user_input:
-            response = baymax.generate_response(user_input)
+            response,intents = baymax.generate_response(user_input)
             baymax.type_response(response)
             baymax.speak(response)
