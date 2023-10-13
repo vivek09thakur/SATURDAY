@@ -13,14 +13,11 @@ from .support import Utils
 
 class BAYMAX:
     
-    def __init__(self,intents_file_path,model_path,open_weather_api,accuracy_stats=False):
+    def __init__(self,intents_file_path,open_weather_api,accuracy_stats=False):
         # INITIALIZING PARAMETERS
         self.intents_file_path = intents_file_path
-        self.model_path = model_path
         self.open_weather_api = open_weather_api
         self.accuracy_stats = accuracy_stats
-        # self.contact_file = contacts_file
-        # self.webdata_file = web_data
         # INITIALIZING VARIABLES
         self.words = []
         self.classes = []
@@ -85,13 +82,13 @@ class BAYMAX:
         
         self.model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
         
-    def train_model(self,train_x,train_y):
-        if os.path.isfile(self.model_path):
-            self.model = tf.keras.models.load_model(self.model_path)
+    def train_model(self,train_x,train_y,model_path):
+        if os.path.isfile(model_path):
+            self.model = tf.keras.models.load_model(model_path)
         else:
             self.build_model()
             self.model.fit(train_x,train_y,epochs=6000,batch_size=300,verbose=2)
-            self.model.save(self.model_path)
+            self.model.save(model_path)
         
         
     def generate_response(self,user_input):
