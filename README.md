@@ -7,7 +7,7 @@
 - [ ] Handle the case where the user has no internet connection
 - [ ] Add a way to change the default location
 
-### COMPLETEDS
+### COMPLETED
 
 - [x] A Neural Network Model having accuracy of 99.9% for classifying user's intent and generating a response accordingly.
 - [x] A advanced `generate_response` function that takes in a user's input and returns a response based on the intent of the user's input and the current state of the conversation. And able to handle dynamic responses. such as `current_time` and `current_date` etc.
