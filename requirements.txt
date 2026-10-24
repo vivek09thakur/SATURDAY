@@ -1,0 +1,10 @@
+torch
+transformers
+numpy
+requests
+faster-whisper
+sounddevice
+soundfile
+edge-tts
+pyautogui
+pywhatkit

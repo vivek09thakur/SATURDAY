@@ -1,0 +1,9 @@
+**/__pycache__
+**/.vscode
+venv/
+env/
+.env
+legacy/
+out-saturday/
+data/contacts.json
+*.pyc
