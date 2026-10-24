@@ -1,0 +1,9 @@
+speech_recognition
+pyttsx3
+pywhatkit
+pyautogui
+subprocess.run
+scikit-learn
+selenium
+time
+json

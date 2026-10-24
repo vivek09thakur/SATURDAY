@@ -1,0 +1,24 @@
+{
+  "contacts": [
+    {
+      "name": "mummy",
+      "phone_number": "+91 0000000001"
+    },
+    {
+      "name": "shamma ma'am",
+      "phone_number": "+91 0000000002"
+    },
+    {
+      "name": "panda",
+      "phone_number": "+91 0000000003"
+    },
+    {
+      "name": "muskan khan",
+      "phone_number": "+91 0000000004"
+    },
+    {
+      "name": "Dainwi kumar",
+      "phone_number": "+91 0000000005"
+    }
+  ]
+}
