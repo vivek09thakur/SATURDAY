@@ -7,4 +7,3 @@ sounddevice
 soundfile
 edge-tts
 pyautogui
-pywhatkit
