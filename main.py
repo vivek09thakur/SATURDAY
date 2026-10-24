@@ -1,14 +1,23 @@
-"""Saturday: a local voice assistant powered by SmolLM2 with tool calling.
+"""Saturday: a personal voice assistant powered by SmolLM2 with tool calling.
 
-    python main.py                 talk to Saturday (microphone + speaker)
-    python main.py --text          chat from the keyboard
-    python main.py finetune        fine-tune the base model on data/conversations.txt
-    python main.py --key=value     override any field of common.common.Config
+By default the model lives on a Colab GPU (needs `pip install google-colab-cli` and a Google sign-in);
+voice and every tool run on this machine. The first run fine-tunes the base model on data/conversations.txt;
+set HF_REPO (+ HF_TOKEN) in .env and the result is pushed to the Hub so later runs skip training.
+
+    python main.py                   talk to Saturday (model on Colab)
+    python main.py --local           talk to Saturday (model on this machine)
+    python main.py --text            keyboard instead of microphone (combinable with --local)
+    python main.py finetune          fine-tune on Colab; --local to do it here
+    python main.py model --local     run only the model server (what the Colab VM runs)
+    python main.py --key=value       override any field of common.common.Config
 """
+import os
 import sys
 
 from common.common import Log, configure
 from common.utils import greeting, is_yes, load_env
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 def build(config, log):
@@ -19,7 +28,15 @@ def build(config, log):
 
 def finetune(config, log):
     config.train = True
-    build(config, log)
+    from model.assistant import build_system_prompt
+    from model.chat import SaturdayChat
+    from plugins import Registry
+    SaturdayChat(config, log).load(build_system_prompt(config, Registry(config)))
+
+
+def model(config, log):
+    from model.server import ModelServer
+    ModelServer(config, log).serve()
 
 
 def talk(config, log):
@@ -45,7 +62,8 @@ def talk(config, log):
             break
 
 
-COMMANDS = {'talk': talk, 'finetune': finetune}
+COMMANDS = {'talk': talk, 'finetune': finetune, 'model': model}
+REMOTE_COMMANDS = ('talk', 'finetune')  # run on Colab unless --local or --model_url is given
 
 
 def main():
@@ -54,7 +72,11 @@ def main():
     command = argv[0] if argv and not argv[0].startswith('--') else 'talk'
     if command not in COMMANDS:
         raise SystemExit(f"unknown command {command!r}; choose from {', '.join(COMMANDS)}\n\n{__doc__}")
-    config = configure([a for a in argv if a.startswith('--')])
+    flags = [a for a in argv if a.startswith('--')]
+    config = configure(flags)
+    if command in REMOTE_COMMANDS and not config.local and not config.model_url:
+        from model.colab import ColabRunner
+        return ColabRunner(config, ROOT).run(command, flags)
     COMMANDS[command](config, Log())
 
 

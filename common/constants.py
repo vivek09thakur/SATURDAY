@@ -23,6 +23,34 @@ BASE_MODEL = 'HuggingFaceTB/SmolLM2-1.7B-Instruct'  # SmolLM2-360M-Instruct is f
 OUT_DIR = 'out-saturday'  # fine-tuned model (HF format)
 SEED = 1337
 IGNORE_INDEX = -100
+MODEL_HOST = '127.0.0.1'
+MODEL_PORT = 8001
+HF_REPO_ENV = 'HF_REPO'  # e.g. your-user/saturday; the fine-tuned model is pushed here so Colab runs can skip training
+REMOTE_ENV = ('HF_TOKEN', HF_REPO_ENV)  # the only .env values forwarded to the Colab VM
+
+# --- colab ----------------------------------------------------------------------------------------
+EXPORT_DIR = 'export'
+LOCAL_ZIP = 'saturday.zip'
+REMOTE_ROOT = '/content/saturday'
+REMOTE_ZIP = '/content/saturday.zip'
+REMOTE_OUT_ZIP = '/content/saturday-out.zip'
+REMOTE_LOG = '/content/saturday-model.log'
+REMOTE_OK = '__SATURDAY_OK__'  # printed by every remote script on success; IPython swallows exit codes
+REMOTE_STARTED = '__SATURDAY_STARTED__'  # first line of every remote script: distinguishes our failures from the CLI's
+REMOTE_PACKAGES = ('transformers>=4.45', 'huggingface_hub')  # torch/numpy/requests are preinstalled on Colab
+REMOTE_TIMEOUT = 3 * 3600
+TRANSIENT_ERRORS = ('WebSocketConnectionClosedException', 'socket is already closed', 'Connection is already closed',
+                    'ConnectionResetError', 'TimeoutError')
+RETRY_DELAY = 15
+UPLOAD_RETRIES = 6  # DNS for a new runtime can lag by a minute or more
+ARCHIVE_EXCLUDE = ('venv', 'env', '.git', '__pycache__', 'legacy', 'out-*', EXPORT_DIR, '.env', 'contacts.json',
+                   '*.pyc', '*.zip', '*.mp3', '*.wav')  # secrets and personal data stay local
+CA_BUNDLE_FILE = 'ca-bundle.pem'
+SERVER_AUTH_OID = '1.3.6.1.5.5.7.3.1'
+SSH_KEYS = ('id_ed25519', 'id_ecdsa')  # the only key types the Colab SSH endpoint accepts
+SSH_HOST = 'root@colab'
+SSH_OPTIONS = ('StrictHostKeyChecking=no', 'ExitOnForwardFailure=yes', 'ServerAliveInterval=30')
+SESSION_LINE = r'^\[(\S+)\] \S+ \| '  # `colab sessions` prints "[name] endpoint | Hardware: ..." per session
 
 # --- data -----------------------------------------------------------------------------------------
 DATA_DIR = 'data'

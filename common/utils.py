@@ -1,6 +1,8 @@
+import fnmatch
 import os
 import re
 import time
+import zipfile
 from datetime import datetime
 
 from common.constants import ENV_FILE, GREETINGS, YES_WORDS
@@ -57,3 +59,34 @@ def is_yes(text):
 def contains_any(text, phrases):
     text = text.lower()
     return any(phrase in text for phrase in phrases)
+
+
+def wait_for_health(url, process=None, attempts=120, interval=1.0):
+    # An SSH -L port accepts connections even when the remote end is down, so check end to end.
+    import requests
+    for _ in range(attempts):
+        if process is not None and process.poll() is not None:
+            raise SystemExit(f"{process.args[0]} exited with {process.returncode}")
+        try:
+            if requests.get(f'{url}/health', timeout=2).ok:
+                return True
+        except requests.RequestException:
+            pass
+        time.sleep(interval)
+    return False
+
+
+def zip_dir(root, path, exclude=()):
+    def excluded(name):
+        return any(fnmatch.fnmatch(name, pattern) for pattern in exclude)
+
+    count = 0
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if not excluded(d)]
+            for filename in filenames:
+                if not excluded(filename):
+                    full = os.path.join(dirpath, filename)
+                    zf.write(full, os.path.relpath(full, root))
+                    count += 1
+    return count

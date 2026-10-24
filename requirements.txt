@@ -7,3 +7,4 @@ sounddevice
 soundfile
 edge-tts
 pyautogui
+google-colab-cli

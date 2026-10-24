@@ -5,5 +5,6 @@ env/
 .env
 legacy/
 out-saturday/
+export/
 data/contacts.json
 *.pyc

@@ -1,11 +1,12 @@
+import os
 import platform
 import sys
 import time
 from ast import literal_eval
 from dataclasses import dataclass, field, fields
 
-from common.constants import (BASE_MODEL, CONVERSATIONS_PATH, OUT_DIR, PERSONA, SAMPLE_RATE, SEED, TTS_VOICE,
-                              WHISPER_MODEL)
+from common.constants import (BASE_MODEL, CONVERSATIONS_PATH, HF_REPO_ENV, MODEL_PORT, OUT_DIR, PERSONA,
+                              REMOTE_TIMEOUT, SAMPLE_RATE, SEED, TTS_VOICE, WHISPER_MODEL)
 
 
 def default_device():
@@ -18,11 +19,23 @@ def default_device():
 
 @dataclass
 class Config:
+    # where the model runs
+    local: bool = False  # run the model on this machine instead of a Colab GPU
+    model_url: str = ''  # when set, generation is delegated to a model server at this URL
+    model_port: int = MODEL_PORT
+    hf_repo: str = field(default_factory=lambda: os.environ.get(HF_REPO_ENV, ''))
+    platform: str = ''  # OS the tools run on; defaults to this machine (set when the model runs elsewhere)
+    # colab
+    gpu: str = 'T4'  # T4, L4, A100 or '' for a CPU runtime
+    session: str = 'saturday'
+    keep: bool = False  # leave the VM running afterwards
+    reuse: bool = False  # attach to an existing session instead of creating one
+    remote_timeout: int = REMOTE_TIMEOUT
     # model
     model_name: str = BASE_MODEL
     out_dir: str = OUT_DIR
     data_path: str = CONVERSATIONS_PATH
-    train: bool = False  # fine-tune the base model on data_path before chatting
+    train: bool = False  # force a fine-tune even if a trained model exists
     train_layers: int = 6  # only the last N transformer blocks are trained; 0 = all
     epochs: int = 3
     learning_rate: float = 1e-4
@@ -51,7 +64,7 @@ class Config:
     listen_timeout: float = 8.0  # give up if nobody speaks for this long
 
     def platform_name(self):
-        return f"{platform.system()} {platform.release()}"
+        return self.platform or f"{platform.system()} {platform.release()}"
 
 
 def configure(argv=None):

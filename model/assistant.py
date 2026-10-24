@@ -4,7 +4,12 @@ import threading
 
 from common.constants import GOODBYE_WORDS, TOOL_PROMPT
 from common.utils import contains_any
-from model.chat import SaturdayChat
+from model.chat import chat_backend
+
+
+def build_system_prompt(config, plugins):
+    prompt = TOOL_PROMPT.replace('{tools}', plugins.describe()).replace('{platform}', config.platform_name())
+    return f"{config.system_prompt}\n{prompt}"
 
 
 class ToolCall:
@@ -81,12 +86,11 @@ class Assistant:
         self.plugins = plugins
         self.log = log
         self.lock = threading.Lock()
-        self.chat = SaturdayChat(config, log).load(self.system_prompt())
+        self.chat = chat_backend(config, log).load(self.system_prompt())
         self.log('info', f"model ready ({self.chat.source}) with tools: {', '.join(p.name for p in plugins)}")
 
     def system_prompt(self):
-        prompt = TOOL_PROMPT.replace('{tools}', self.plugins.describe()).replace('{platform}', self.config.platform_name())
-        return f"{self.config.system_prompt}\n{prompt}"
+        return build_system_prompt(self.config, self.plugins)
 
     def generate(self, history):
         return self.chat.generate([{'role': 'system', 'content': self.system_prompt()}] + history)
