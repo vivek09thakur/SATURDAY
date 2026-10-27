@@ -20,8 +20,9 @@ class ChatBackend:
 
 
 class SaturdayChat(ChatBackend):
-    """SmolLM2 wrapper. Picks the first available of: local out_dir, Hugging Face Hub repo, base model.
-    Loading the base model triggers a fine-tune, which is saved locally and pushed to the Hub when configured."""
+    """Picks the first usable of: local out_dir, Hugging Face Hub repo, base model. A saved fine-tune is only
+    used if it was built on the same architecture as the configured base model. Loading the base model triggers a
+    fine-tune, which is saved locally and pushed to the Hub when configured."""
 
     def __init__(self, config, log=print):
         super().__init__(config, log)
@@ -42,13 +43,34 @@ class SaturdayChat(ChatBackend):
             self.log('error', f"could not reach the Hub for {repo}: {type(error).__name__}: {error}")
             return False
 
+    @staticmethod
+    def architectures(source):
+        import json
+        if os.path.isdir(source):
+            path = os.path.join(source, 'config.json')
+        else:
+            from huggingface_hub import hf_hub_download
+            path = hf_hub_download(source, 'config.json')
+        with open(path, encoding='utf-8') as f:
+            return tuple(json.load(f).get('architectures', ()))
+
+    def same_family(self, source):
+        try:
+            trained, base = self.architectures(source), self.architectures(self.config.model_name)
+        except Exception as error:
+            self.log('error', f"could not compare {source} with {self.config.model_name}: {type(error).__name__}: {error}")
+            return False
+        if trained != base:
+            self.log('info', f"{source} was fine-tuned from {'/'.join(trained)}, not {'/'.join(base)}; training again")
+        return trained == base
+
     def resolve_source(self):
         cfg = self.config
         if cfg.train:
             return cfg.model_name
-        if self.is_trained():
+        if self.is_trained() and self.same_family(cfg.out_dir):
             return cfg.out_dir
-        if self.on_hub():
+        if self.on_hub() and self.same_family(cfg.hf_repo):
             return cfg.hf_repo
         return cfg.model_name
 

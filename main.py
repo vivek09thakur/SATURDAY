@@ -1,4 +1,4 @@
-"""Saturday: a personal voice assistant powered by SmolLM2 with tool calling.
+"""Saturday: a personal voice assistant powered by Qwen2.5 with tool calling.
 
 By default the model lives on a Colab GPU (needs `pip install google-colab-cli` and a Google sign-in);
 voice and every tool run on this machine. The first run fine-tunes the base model on data/conversations.txt;

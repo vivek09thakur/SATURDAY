@@ -19,7 +19,7 @@ TOOL_PROMPT = (
 )
 
 # --- model ----------------------------------------------------------------------------------------
-BASE_MODEL = 'HuggingFaceTB/SmolLM2-1.7B-Instruct'  # SmolLM2-360M-Instruct is faster on CPU but worse at tool calls
+BASE_MODEL = 'Qwen/Qwen2.5-1.5B-Instruct'  # native <tool_call> support; Qwen2.5-0.5B-Instruct is faster on CPU
 OUT_DIR = 'out-saturday'  # fine-tuned model (HF format)
 SEED = 1337
 IGNORE_INDEX = -100

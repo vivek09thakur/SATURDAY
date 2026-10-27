@@ -2,7 +2,7 @@
 
 A personal voice assistant with a small language model behind it. Say something, Saturday answers out loud and, when needed, does things on your computer: opens sites, plays YouTube, checks the weather, sends email, shuts the PC down.
 
-- **Brain**: [SmolLM2-1.7B-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct), fine-tuned on
+- **Brain**: [Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct), fine-tuned on
   `data/conversations.txt` so it talks like Saturday and knows how to call tools.
 - **Ears / voice**: `faster-whisper` (offline speech-to-text) and `edge-tts` (text-to-speech).
 - **Hands**: plugins in `plugins/`. The model emits `<tool_call>{"name": ..., "arguments": {...}}</tool_call>`, the
@@ -71,14 +71,16 @@ Say **bye** (or Ctrl+C) to stop. Tools that change something (`shutdown`, `send_
 The terminal UI (`--tui`, built with [Textual](https://textual.textualize.io/)) is two columns: on the left a panel that shows what Saturday can do, the live
 status and the conversation; on the right Saturday as a little rubber-hose clock, drawn with half-block pixels so the
 dial is a true circle. It drifts around, blinks, glances, taps a foot, hops, waves while listening, scratches its head
-while thinking and flaps its mouth while talking. The mic
+while thinking and flaps its mouth while talking. Replies are typed out character by character. The mic
 is always on; **Ctrl+T** opens a chat bar for typing (Esc closes it), **Ctrl+C** or *bye* exits.
 
 What `python main.py` does, step by step:
 
 1. Zips the repo (without `.env`, `contacts.json`, weights) and uploads it to a fresh Colab T4 session.
 2. On the VM starts `main.py model`. The model is loaded from the first of: local `out-saturday/` → `HF_REPO` on the
-   Hub → base SmolLM2. If it had to fall back to the base model it **fine-tunes right there**, saves, and pushes to
+   Hub → base Qwen2.5. A saved fine-tune is only reused if it was built on the same architecture as the configured
+   base model (so changing `--model_name` family retrains automatically). If it had to fall back to the base model it
+   **fine-tunes right there**, saves, and pushes to
    `HF_REPO` if set (~10–15 min on a T4 the first time; later runs skip this).
 3. Opens `ssh -L 8001` to the VM and runs `main.py talk --model_url=http://127.0.0.1:8001` locally.
 4. On exit closes the tunnel and stops the VM.
@@ -117,7 +119,7 @@ colab stop -s saturday                     # stop a kept session by hand
 Any field of `Config` in `common/common.py` can be set with `--name=value`:
 
 ```powershell
---model_name=HuggingFaceTB/SmolLM2-360M-Instruct   # smaller/faster model (weaker at tool calls)
+--model_name=Qwen/Qwen2.5-0.5B-Instruct             # smaller/faster model (weaker at tool calls)
 --whisper_model=small.en                            # tiny.en / base.en (default) / small.en / medium.en
 --voice=en-US-GuyNeural                             # any edge-tts voice (default en-IN-PrabhatNeural)
 --temperature=0                                     # greedy decoding

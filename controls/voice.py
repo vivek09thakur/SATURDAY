@@ -106,6 +106,8 @@ class VoiceIO:
 
 class TextIO:
 
+    CPS = 45  # typewriter speed, characters per second
+
     def listen(self, cancel=None):
         try:
             return input('You: ').strip()
@@ -113,4 +115,12 @@ class TextIO:
             return 'bye'
 
     def say(self, text):
-        print(f"Saturday: {text}\n", flush=True)
+        import sys
+        import time
+        sys.stdout.write('Saturday: ')
+        for ch in text:
+            sys.stdout.write(ch)
+            sys.stdout.flush()
+            time.sleep(1 / self.CPS)
+        sys.stdout.write('\n\n')
+        sys.stdout.flush()

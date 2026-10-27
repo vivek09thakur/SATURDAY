@@ -21,6 +21,7 @@ import time
 
 from rich.segment import Segment
 from rich.style import Style
+from rich.text import Text
 from textual.app import App
 from textual.binding import Binding
 from textual.containers import Vertical
@@ -34,6 +35,7 @@ from model.assistant import Session
 
 ORANGE, DARK, CREAM, INK, AMBER, DIM = '#f08a1d', '#8a4a08', '#fff3dc', '#2b231c', '#ffb347', '#c98a4a'
 STATUS = {'idle': 'ready', 'listening': 'listening', 'thinking': 'thinking', 'speaking': 'talking'}
+TYPING_CPS = 45  # characters per second for the typewriter effect
 
 
 # --- pixel painter: each terminal cell is two vertically stacked pixels, so pixels are square ---------
@@ -352,6 +354,8 @@ class SaturdayApp(App):
     #right {{ width: 46; height: 100%; border: round {ORANGE}; }}
     #header {{ height: auto; padding: 0 1; border-bottom: solid {DARK}; }}
     #log {{ height: 1fr; padding: 0 1; background: transparent; scrollbar-color: {DARK}; }}
+    #typing {{ height: auto; padding: 0 1; display: none; }}
+    #typing.on {{ display: block; }}
     #chat {{ display: none; border: round {AMBER}; background: #16100a; color: {CREAM}; }}
     #chat.open {{ display: block; }}
     #keys {{ height: 1; padding: 0 1; color: {DIM}; }}
@@ -375,11 +379,13 @@ class SaturdayApp(App):
         self.menu = []
         self.state = 'idle'
         self.error = None
+        self.typewriter = None  # (full text, chars shown, timer) while a reply is being typed out
 
     def compose(self):
         with Vertical(id='left'):
             yield Static(id='header')
             yield RichLog(id='log', wrap=True, markup=True, auto_scroll=True)
+            yield Static(id='typing')
             yield Input(id='chat', placeholder='type to Saturday, Enter to send')
             yield Static('Ctrl+T type | Ctrl+C quit', id='keys')
         yield Clock()
@@ -395,11 +401,11 @@ class SaturdayApp(App):
     # --- ui helpers (main thread) ---
 
     def update_header(self):
-        line = f"[{ORANGE}]* {NAME} - {STATUS[self.state]}[/]"
+        line = Text.assemble(('* ', ORANGE), (f"{NAME} - {STATUS[self.state]}", f'bold {ORANGE}'))
         if self.pending:
-            line += f"   [{AMBER}]waiting for yes / no[/]"
+            line.append('   waiting for yes / no', style=AMBER)
         if self.menu:
-            line += f"\n[{DIM}]can: " + ' | '.join(self.menu) + '[/]'
+            line.append('\ncan: ' + ' | '.join(self.menu), style=DIM)
         self.query_one('#header', Static).update(line)
 
     def set_state(self, state):
@@ -410,16 +416,46 @@ class SaturdayApp(App):
     def note(self, kind, text):
         log = self.query_one('#log', RichLog)
         if kind == 'you':
-            log.write(f"[bold {AMBER}]You:[/] {text}")
+            self.finish_typing()
+            log.write(Text.assemble(('You: ', f'bold {AMBER}'), text))
         elif kind == 'saturday':
-            log.write(f"[bold {ORANGE}]{NAME}:[/] {text}")
+            self.start_typing(text)
         elif kind == 'tool' and not text.startswith('call '):
-            log.write(f"  [{DIM}]{text}[/]")
+            log.write(Text(f"  {text}", style=DIM))
         elif kind == 'error':
-            log.write(f"  [bold red]{text}[/]")
+            log.write(Text(f"  {text}", style='bold red'))
         elif kind == 'wait':
             self.pending = True
             self.update_header()
+
+    # Replies are typed out character by character under the transcript, then committed to it.
+    def start_typing(self, text):
+        self.finish_typing()
+        timer = self.set_interval(1 / TYPING_CPS, self.type_step)
+        self.typewriter = [text, 0, timer]
+        self.query_one('#typing', Static).add_class('on')
+        self.type_step()
+
+    def type_step(self):
+        if self.typewriter is None:
+            return
+        text, shown, timer = self.typewriter
+        shown = min(len(text), shown + 1)
+        self.typewriter[1] = shown
+        self.query_one('#typing', Static).update(Text.assemble((f'{NAME}: ', f'bold {ORANGE}'), text[:shown], ('_', AMBER)))
+        if shown >= len(text):
+            self.finish_typing()
+
+    def finish_typing(self):
+        if self.typewriter is None:
+            return
+        text, _, timer = self.typewriter
+        timer.stop()
+        self.typewriter = None
+        widget = self.query_one('#typing', Static)
+        widget.update('')
+        widget.remove_class('on')
+        self.query_one('#log', RichLog).write(Text.assemble((f'{NAME}: ', f'bold {ORANGE}'), text))
 
     def action_toggle_chat(self):
         chat = self.query_one('#chat', Input)
