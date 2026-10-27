@@ -36,6 +36,7 @@ python -m venv venv
 pip install -r requirements.txt
 copy .env.example .env          # then fill it in (see below)
 copy data\contacts.example.json data\contacts.json   # names + emails for send_email
+python main.py adduser                              # who Saturday should recognise (see Users below)
 ```
 
 `.env` keys (all optional; a tool that needs a missing key just reports an error):
@@ -68,6 +69,18 @@ python main.py --local --text  # everything local, keyboard only
 
 Say **bye** (or Ctrl+C) to stop. Tools that change something (`shutdown`, `send_email`) ask first; answer *yes* / *no*.
 
+### Users
+
+Saturday asks *"Who am I talking to?"* when it starts (say or type a name) and looks it up in `data/users.json`
+(gitignored; see `data/users.example.json`). Register people with `python main.py adduser`: a name, aliases, how
+Saturday should address them (`boss`, `ma'am`, their first name), a role (`owner` / `family` / `friend` / `guest`) and an
+optional PIN (stored salted + hashed; asked by keyboard only). Unknown names become guests.
+
+- The identity and current time are added to the model's system prompt every turn, so it knows who it is talking to
+  and whether it is night.
+- Tools that need confirmation (`shutdown`, `send_email`) are **owner-only**; everyone else gets a polite refusal.
+- `--user=vivek` skips the question (a PIN, if set, is still asked).
+
 The terminal UI (`--tui`, built with [Textual](https://textual.textualize.io/)) is two columns: on the left a panel that shows what Saturday can do, the live
 status and the conversation; on the right Saturday as a little rubber-hose clock, drawn with half-block pixels so the
 dial is a true circle. It drifts around, blinks, glances, taps a foot, hops, waves while listening, scratches its head
@@ -95,6 +108,8 @@ python main.py finetune --epochs=5 --learning_rate=5e-5 --train_layers=0   # all
 ```
 
 Training data is `data/conversations.txt`: `User:` / `Saturday:` / `Tool:` lines, conversations separated by `---`.
+An optional first line `Context: ...` (who is talking, the time, in the same wording the app uses) teaches the model to
+use the identity line it gets at runtime.
 Edit it, run `finetune`, done. Keep tool examples in the exact `<tool_call>` JSON shape the plugins expect.
 
 ### Model server only
@@ -149,10 +164,12 @@ Adding one: create a `Plugin` subclass in any module under `plugins/` with `name
 
 ## Troubleshooting
 
+- **`CERTIFICATE_VERIFY_FAILED` from edge-tts / Hugging Face / the colab CLI** – you are behind a TLS-inspecting proxy.
+  Saturday calls `truststore.inject_into_ssl()` at startup so Python trusts the OS certificate store; make sure
+  `truststore` is installed (`pip install -r requirements.txt`). The colab CLI additionally gets an exported bundle in
+  `export/ca-bundle.pem`; set `REQUESTS_CA_BUNDLE` yourself to override.
 - **`the 'colab' CLI is not installed`** – `pip install google-colab-cli`, or use `--local`.
 - **`could not allocate a runtime`** – Colab quota/capacity; wait, try `--gpu=''`, or `--local`.
-- **`CERTIFICATE_VERIFY_FAILED` from the colab CLI** – you are behind a TLS-inspecting proxy; Saturday exports the OS
-  certificate store to `export/ca-bundle.pem` automatically. Set `REQUESTS_CA_BUNDLE` yourself to override.
 - **`push to <repo> failed`** – `HF_TOKEN` missing or read-only. The model is still saved on the VM for this session.
 - **Nothing is heard** – lower `--silence_threshold` (default `0.01`) or check the default input device.
 - **Speech fails / silent** – `edge-tts` needs internet; the reply is still printed.

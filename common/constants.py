@@ -4,11 +4,17 @@
 NAME = 'Saturday'
 AUTHOR = 'Vivek Thakur'
 PERSONA = (
-    f'You are {NAME}, a personal voice assistant created by {AUTHOR}. '
-    "You call the user 'boss'. You are warm, casual and a bit playful, like a close friend. "
+    f'You are {NAME}, a personal voice assistant created by {AUTHOR}, your boss. '
+    'You are warm, casual and a bit playful, like a close friend. '
     'Your replies are spoken aloud, so answer in one or two short plain sentences: no markdown, no lists, no emojis. '
-    'Remember what the user tells you, such as their name and how their day went.'
+    'Remember what the user tells you, such as how their day went.'
 )
+CONTEXT_PROMPT = '{user} It is {time}.'  # appended at inference with the logged-in user and the current time
+GUEST_PROMPT = ("They are not your owner: be polite, keep Vivek's personal details private, "
+                'and politely refuse anything that changes this computer or sends messages.')
+OWNER_TITLE = 'boss'
+GUEST_TITLE = 'friend'
+USERS_PATH = 'data/users.json'
 TOOL_PROMPT = (
     'You can use tools. When the user asks for something that needs one, reply with only:\n'
     '<tool_call>{"name": "tool_name", "arguments": {"param": "value"}}</tool_call>\n'
@@ -44,7 +50,7 @@ TRANSIENT_ERRORS = ('WebSocketConnectionClosedException', 'socket is already clo
 RETRY_DELAY = 15
 UPLOAD_RETRIES = 6  # DNS for a new runtime can lag by a minute or more
 ARCHIVE_EXCLUDE = ('venv', '.venv', 'env', '.env', '*venv*', '.git', '.vscode', '.idea', '__pycache__', '.pytest_cache',
-                   'node_modules', 'legacy', 'out-*', EXPORT_DIR, 'contacts.json',
+                   'node_modules', 'legacy', 'out-*', EXPORT_DIR, 'contacts.json', 'users.json',
                    '*.pyc', '*.zip', '*.mp3', '*.wav', '*.png', '*.jpg')  # secrets and personal data stay local
 ARCHIVE_MAX_MB = 20  # anything bigger means a venv or model weights slipped in; the Colab upload API rejects it
 CA_BUNDLE_FILE = 'ca-bundle.pem'
@@ -58,7 +64,7 @@ SESSION_LINE = r'^\[(\S+)\] \S+ \| '  # `colab sessions` prints "[name] endpoint
 DATA_DIR = 'data'
 CONVERSATIONS_PATH = f'{DATA_DIR}/conversations.txt'
 CONTACTS_PATH = f'{DATA_DIR}/contacts.json'
-SPEAKERS = {'User': 'user', NAME: 'assistant', 'Tool': 'tool'}
+SPEAKERS = {'User': 'user', NAME: 'assistant', 'Tool': 'tool', 'Context': 'system'}
 SEPARATOR = '---'
 ENV_FILE = '.env'
 
@@ -70,7 +76,7 @@ SAMPLE_RATE = 16000
 # --- conversation ---------------------------------------------------------------------------------
 GOODBYE_WORDS = ('bye', 'goodbye', 'good night', 'see you later', 'exit', 'quit')
 YES_WORDS = ('yes', 'yeah', 'yep', 'yup', 'sure', 'ok', 'okay', 'go ahead', 'do it', 'allow')
-GREETINGS = {(0, 12): 'a warm good morning boss', (12, 18): 'good afternoon boss', (18, 24): 'good evening boss'}
+GREETINGS = {(0, 12): 'a warm good morning {title}', (12, 18): 'good afternoon {title}', (18, 24): 'good evening {title}'}
 
 # --- plugins --------------------------------------------------------------------------------------
 SITES = {

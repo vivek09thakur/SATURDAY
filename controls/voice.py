@@ -53,7 +53,9 @@ class Listener:
             return ''
         self.on_state('thinking')
         segments, _ = self.model.transcribe(audio, language='en', beam_size=1, vad_filter=True)
-        text = ' '.join(segment.text.strip() for segment in segments).strip()
+        # Whisper invents sentences on noise; such segments have low confidence and a high no-speech score.
+        kept = [s.text.strip() for s in segments if s.no_speech_prob < 0.6 and s.avg_logprob > -1.0]
+        text = ' '.join(kept).strip()
         if text:
             self.log('you', text)
         return text

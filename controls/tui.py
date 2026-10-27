@@ -25,12 +25,15 @@ from rich.text import Text
 from textual.app import App
 from textual.binding import Binding
 from textual.containers import Vertical
+from textual.screen import ModalScreen
 from textual.strip import Strip
 from textual.widget import Widget
 from textual.widgets import Input, RichLog, Static
 
-from common.constants import NAME
+from common.constants import NAME, OWNER_TITLE
+from common.users import User, Users, guest
 from common.utils import greeting, is_yes
+from controls.login import ASK_NAME, ASK_PIN, MAX_PIN_TRIES, WRONG_PIN, resolve
 from model.assistant import Session
 
 ORANGE, DARK, CREAM, INK, AMBER, DIM = '#f08a1d', '#8a4a08', '#fff3dc', '#2b231c', '#ffb347', '#c98a4a'
@@ -346,6 +349,64 @@ class Clock(Widget):
 
 # --- the app --------------------------------------------------------------------------------------------
 
+class LoginScreen(ModalScreen):
+    """Asks for a name, then a PIN if that user has one. Dismisses with a User."""
+
+    CSS = f"""
+    LoginScreen {{ align: center middle; background: #16100a 80%; }}
+    #login {{ width: 60; height: auto; padding: 1 2; border: round {ORANGE}; background: #16100a; }}
+    #login Static {{ color: {CREAM}; }}
+    #login Input {{ margin-top: 1; border: tall {DARK}; background: #1e150c; color: {CREAM}; }}
+    #msg {{ color: {AMBER}; height: auto; margin-top: 1; }}
+    """
+
+    def __init__(self, users, preset=''):
+        super().__init__()
+        self.users = users
+        self.preset = preset
+        self.user = None
+        self.tries = 0
+
+    def compose(self):
+        with Vertical(id='login'):
+            yield Static(Text(f"{NAME}: {ASK_NAME}", style=f'bold {ORANGE}'), id='ask')
+            yield Input(id='name', placeholder='your name')
+            yield Input(id='pin', placeholder='PIN', password=True)
+            yield Static('', id='msg')
+
+    def on_mount(self):
+        self.query_one('#pin', Input).display = False
+        if self.preset:
+            self.query_one('#name', Input).value = self.preset
+            self.identify(self.preset)
+        else:
+            self.query_one('#name', Input).focus()
+
+    def identify(self, name):
+        self.user = resolve(self.users, name)
+        if not self.user.needs_pin:
+            return self.dismiss(self.user)
+        self.query_one('#ask', Static).update(Text(f"{NAME}: {ASK_PIN}, {self.user.name}", style=f'bold {ORANGE}'))
+        self.query_one('#name', Input).display = False
+        pin = self.query_one('#pin', Input)
+        pin.display = True
+        pin.focus()
+
+    def on_input_submitted(self, event):
+        value = event.value.strip()
+        if event.input.id == 'name':
+            if value:
+                self.identify(value)
+            return
+        event.input.value = ''
+        if self.user.check_pin(value):
+            return self.dismiss(self.user)
+        self.tries += 1
+        if self.tries >= MAX_PIN_TRIES:
+            return self.dismiss(guest(self.user.name))
+        self.query_one('#msg', Static).update(f"{WRONG_PIN} ({self.tries}/{MAX_PIN_TRIES})")
+
+
 class SaturdayApp(App):
 
     CSS = f"""
@@ -378,6 +439,7 @@ class SaturdayApp(App):
         self.closing = False
         self.menu = []
         self.state = 'idle'
+        self.user = None
         self.error = None
         self.typewriter = None  # (full text, chars shown, timer) while a reply is being typed out
 
@@ -393,6 +455,17 @@ class SaturdayApp(App):
     def on_mount(self):
         self.title = NAME
         self.update_header()
+        users = Users()
+        if not users.users:
+            self.start(User(name='Boss', title=OWNER_TITLE, role='owner'))
+        elif self.config.user and not resolve(users, self.config.user).needs_pin:
+            self.start(resolve(users, self.config.user))
+        else:
+            self.push_screen(LoginScreen(users, self.config.user), callback=self.start)
+
+    def start(self, user):
+        self.user = user
+        self.update_header()
         self.run_worker(self.converse, thread=True, exit_on_error=False)
 
     def on_unmount(self):
@@ -402,6 +475,8 @@ class SaturdayApp(App):
 
     def update_header(self):
         line = Text.assemble(('* ', ORANGE), (f"{NAME} - {STATUS[self.state]}", f'bold {ORANGE}'))
+        if self.user is not None:
+            line.append(f"   talking to {self.user.name} ({self.user.role})", style=DIM)
         if self.pending:
             line.append('   waiting for yes / no', style=AMBER)
         if self.menu:
@@ -498,8 +573,8 @@ class SaturdayApp(App):
             self.error = f"{type(error).__name__}: {error}"
             ui(self.exit)
             return
-        session = Session()
-        self.say(io, greeting())
+        session = Session(self.user)
+        self.say(io, greeting(self.user))
         while not self.closing:
             text = self.hear(io)
             if text is None:

@@ -6,6 +6,7 @@ faster-whisper
 sounddevice
 soundfile
 edge-tts
+truststore
 pyautogui
 textual
 google-colab-cli

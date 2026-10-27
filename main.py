@@ -10,6 +10,8 @@ set HF_REPO (+ HF_TOKEN) in .env and the result is pushed to the Hub so later ru
     python main.py --tui             terminal UI with the clock character (add --text for keyboard only)
     python main.py finetune          fine-tune on Colab; --local to do it here
     python main.py model --local     run only the model server (what the Colab VM runs)
+    python main.py adduser           register who Saturday should recognise (name, how to address them, optional PIN)
+    python main.py --user=vivek      skip the "who am I talking to" question
     python main.py --key=value       override any field of common.common.Config
 """
 import os
@@ -44,12 +46,13 @@ def talk(config, log):
     if config.tui:
         from controls.tui import TUI
         return TUI(config, lambda tui_log: build(config, tui_log), lambda sink: Log(sink=sink)).run()
+    from controls.login import login
     from controls.voice import TextIO, VoiceIO
     from model.assistant import Session
     assistant = build(config, log)
     io = TextIO() if config.text else VoiceIO(config, log)
-    session = Session()
-    io.say(greeting())
+    session = Session(login(config, io, log))
+    io.say(greeting(session.user))
     while True:
         text = io.listen()
         if not text:
@@ -66,12 +69,27 @@ def talk(config, log):
             break
 
 
-COMMANDS = {'talk': talk, 'finetune': finetune, 'model': model}
+def adduser(config, log):
+    from common.users import Users
+    Users().add_interactive()
+
+
+COMMANDS = {'talk': talk, 'finetune': finetune, 'model': model, 'adduser': adduser}
 REMOTE_COMMANDS = ('talk', 'finetune')  # run on Colab unless --local or --model_url is given
+
+
+def trust_os_certificates():
+    # Behind a TLS-inspecting proxy the corporate CA is only in the OS store; make Python's ssl use it.
+    try:
+        import truststore
+        truststore.inject_into_ssl()
+    except ImportError:
+        pass
 
 
 def main():
     load_env()
+    trust_os_certificates()
     argv = sys.argv[1:]
     command = argv[0] if argv and not argv[0].startswith('--') else 'talk'
     if command not in COMMANDS:

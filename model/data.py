@@ -5,7 +5,8 @@ from common.constants import IGNORE_INDEX, SEPARATOR, SPEAKERS
 
 
 class ConversationFile:
-    """Plain-text chats: `User: ...` / `Saturday: ...` / `Tool: ...` lines, conversations separated by `---`."""
+    """Plain-text chats: `User: ...` / `Saturday: ...` / `Tool: ...` lines, conversations separated by `---`.
+    An optional leading `Context: ...` line (who is talking, the time) is appended to the system prompt."""
 
     def __init__(self, path, system_prompt):
         self.path = path
@@ -33,7 +34,14 @@ class ConversationFile:
         for conversation in conversations:
             for message in conversation:
                 message['content'] = message['content'].strip()
-        return [[{'role': 'system', 'content': self.system_prompt}] + c for c in conversations]
+        result = []
+        for conversation in conversations:
+            system = self.system_prompt
+            if conversation and conversation[0]['role'] == 'system':
+                system = f"{system}\n{conversation[0]['content']}"
+                conversation = conversation[1:]
+            result.append([{'role': 'system', 'content': system}] + conversation)
+        return result
 
 
 class ConversationDataset(Dataset):

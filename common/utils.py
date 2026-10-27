@@ -46,9 +46,10 @@ def trim_loop(text):
     return text[:match.start() + len(match.group(1))].rstrip(' ,;:-') + '.'
 
 
-def greeting(now=None):
+def greeting(user=None, now=None):
     hour = (now or datetime.now()).hour
-    return next(text for (start, end), text in GREETINGS.items() if start <= hour < end)
+    text = next(text for (start, end), text in GREETINGS.items() if start <= hour < end)
+    return text.format(title=user.title if user is not None else 'boss')
 
 
 def is_yes(text):

@@ -1,8 +1,9 @@
 import json
 import re
 import threading
+from datetime import datetime
 
-from common.constants import GOODBYE_WORDS, TOOL_PROMPT
+from common.constants import CONTEXT_PROMPT, GOODBYE_WORDS, GUEST_PROMPT, TOOL_PROMPT
 from common.utils import contains_any
 from model.chat import chat_backend
 
@@ -10,6 +11,13 @@ from model.chat import chat_backend
 def build_system_prompt(config, plugins):
     prompt = TOOL_PROMPT.replace('{tools}', plugins.describe()).replace('{platform}', config.platform_name())
     return f"{config.system_prompt}\n{prompt}"
+
+
+def context_prompt(user, now=None):
+    # Not part of fine-tuning: who is here and what time it is change every session.
+    now = now or datetime.now()
+    who = user.describe() + ('' if user.is_owner else ' ' + GUEST_PROMPT) if user is not None else ''
+    return CONTEXT_PROMPT.format(user=who, time=now.strftime('%A %d %B %Y, %I:%M %p')).strip()
 
 
 class ToolCall:
@@ -63,7 +71,8 @@ class ToolCall:
 
 class Session:
 
-    def __init__(self):
+    def __init__(self, user=None):
+        self.user = user  # common.users.User or None
         self.history = []
         self.pending = None  # tool call waiting for the user's permission
 
@@ -92,8 +101,9 @@ class Assistant:
     def system_prompt(self):
         return build_system_prompt(self.config, self.plugins)
 
-    def generate(self, history):
-        return self.chat.generate([{'role': 'system', 'content': self.system_prompt()}] + history)
+    def generate(self, session):
+        system = f"{self.system_prompt()}\n{context_prompt(session.user)}"
+        return self.chat.generate([{'role': 'system', 'content': system}] + session.history)
 
     @staticmethod
     def is_goodbye(text):
@@ -121,7 +131,7 @@ class Assistant:
 
     def step(self, session):
         for _ in range(self.config.max_tool_calls):
-            answer = self.generate(session.history)
+            answer = self.generate(session)
             call = ToolCall.parse(answer)
             if call is None:
                 session.add('assistant', answer)
@@ -139,8 +149,13 @@ class Assistant:
                 self.record(session, f"error: {error}")
                 continue
             if plugin.confirm:
+                if session.user is not None and not session.user.is_owner:
+                    self.log('tool', f"refused {plugin.name} for non-owner {session.user.name}")
+                    self.record(session, f"error: only the owner may use {plugin.name}; {session.user.name} is a {session.user.role}")
+                    continue
                 session.pending = call
-                question = f"Boss, shall I {plugin.summary(call.arguments)}?"
+                title = (session.user.title if session.user is not None else 'boss').capitalize()
+                question = f"{title}, shall I {plugin.summary(call.arguments)}?"
                 self.log('wait', question)
                 return question, call
             self.execute(session, plugin, call)

@@ -50,6 +50,7 @@ class Config:
     device: str = field(default_factory=default_device)
     # assistant
     system_prompt: str = PERSONA
+    user: str = ''  # who is talking (name from data/users.json); asked at startup when empty
     max_history: int = 6  # user turns kept in context
     max_tool_calls: int = 3  # per user turn
     max_tool_result: int = 1500
