@@ -53,8 +53,9 @@ class Config:
     max_history: int = 6  # user turns kept in context
     max_tool_calls: int = 3  # per user turn
     max_tool_result: int = 1500
-    # voice
+    # voice / ui
     text: bool = False  # keyboard instead of microphone and speaker
+    tui: bool = False  # terminal UI with the clock character; voice unless --text is also given
     whisper_model: str = WHISPER_MODEL
     voice: str = TTS_VOICE
     sample_rate: int = SAMPLE_RATE
@@ -92,11 +93,14 @@ def configure(argv=None):
 
 class Log:
 
-    def __init__(self, quiet=False):
+    def __init__(self, quiet=False, sink=None):
         self.quiet = quiet
+        self.sink = sink  # (kind, text) -> None; default prints
 
     def __call__(self, kind, text):
         if self.quiet and kind in ('model',):
             return
         text = ' '.join(str(text).split())[:400]
+        if self.sink is not None:
+            return self.sink(kind, text)
         print(f"[{time.strftime('%H:%M:%S')}] [{kind}] {text}", flush=True)

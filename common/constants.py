@@ -43,13 +43,15 @@ TRANSIENT_ERRORS = ('WebSocketConnectionClosedException', 'socket is already clo
                     'ConnectionResetError', 'TimeoutError')
 RETRY_DELAY = 15
 UPLOAD_RETRIES = 6  # DNS for a new runtime can lag by a minute or more
-ARCHIVE_EXCLUDE = ('venv', 'env', '.git', '__pycache__', 'legacy', 'out-*', EXPORT_DIR, '.env', 'contacts.json',
-                   '*.pyc', '*.zip', '*.mp3', '*.wav')  # secrets and personal data stay local
+ARCHIVE_EXCLUDE = ('venv', '.venv', 'env', '.env', '*venv*', '.git', '.vscode', '.idea', '__pycache__', '.pytest_cache',
+                   'node_modules', 'legacy', 'out-*', EXPORT_DIR, 'contacts.json',
+                   '*.pyc', '*.zip', '*.mp3', '*.wav', '*.png', '*.jpg')  # secrets and personal data stay local
+ARCHIVE_MAX_MB = 20  # anything bigger means a venv or model weights slipped in; the Colab upload API rejects it
 CA_BUNDLE_FILE = 'ca-bundle.pem'
 SERVER_AUTH_OID = '1.3.6.1.5.5.7.3.1'
 SSH_KEYS = ('id_ed25519', 'id_ecdsa')  # the only key types the Colab SSH endpoint accepts
 SSH_HOST = 'root@colab'
-SSH_OPTIONS = ('StrictHostKeyChecking=no', 'ExitOnForwardFailure=yes', 'ServerAliveInterval=30')
+SSH_OPTIONS = ('StrictHostKeyChecking=no', 'ExitOnForwardFailure=yes', 'ServerAliveInterval=30', 'LogLevel=ERROR')
 SESSION_LINE = r'^\[(\S+)\] \S+ \| '  # `colab sessions` prints "[name] endpoint | Hardware: ..." per session
 
 # --- data -----------------------------------------------------------------------------------------
@@ -66,7 +68,7 @@ TTS_VOICE = 'en-IN-PrabhatNeural'
 SAMPLE_RATE = 16000
 
 # --- conversation ---------------------------------------------------------------------------------
-GOODBYE_WORDS = ('bye', 'goodbye', 'good night', 'see you later')
+GOODBYE_WORDS = ('bye', 'goodbye', 'good night', 'see you later', 'exit', 'quit')
 YES_WORDS = ('yes', 'yeah', 'yep', 'yup', 'sure', 'ok', 'okay', 'go ahead', 'do it', 'allow')
 GREETINGS = {(0, 12): 'a warm good morning boss', (12, 18): 'good afternoon boss', (18, 24): 'good evening boss'}
 

@@ -19,6 +19,7 @@ The original 2023 version (bag-of-words intent classifier + keyword automations)
 main.py            entry point
 common/            constants.py (identity, persona, model id), common.py (Config + CLI flags), utils.py
 controls/voice.py  Listener (mic → whisper), Speaker (edge-tts → speakers), TextIO (keyboard)
+controls/tui.py    terminal UI: left panel = menu + conversation (always listening), right panel = the lively clock
 plugins/           one Plugin subclass per tool; dropped in a module here = auto-discovered
 model/             chat.py (load / fine-tune / generate, RemoteChat), assistant.py (tool-call loop),
                    server.py (model HTTP server), colab.py (runs the model on Colab), data.py
@@ -60,11 +61,18 @@ and the OpenSSH client (`ssh`), built into Windows 10+ / macOS / Linux.
 ```powershell
 python main.py                 # model on Colab GPU, voice + tools here (default)
 python main.py --text          # same, but type instead of speaking
+python main.py --tui           # same, in the terminal UI with the clock character; add --text for keyboard only
 python main.py --local         # model on this machine (needs a GPU or patience)
 python main.py --local --text  # everything local, keyboard only
 ```
 
 Say **bye** (or Ctrl+C) to stop. Tools that change something (`shutdown`, `send_email`) ask first; answer *yes* / *no*.
+
+The terminal UI (`--tui`, built with [Textual](https://textual.textualize.io/)) is two columns: on the left a panel that shows what Saturday can do, the live
+status and the conversation; on the right Saturday as a little rubber-hose clock, drawn with half-block pixels so the
+dial is a true circle. It drifts around, blinks, glances, taps a foot, hops, waves while listening, scratches its head
+while thinking and flaps its mouth while talking. The mic
+is always on; **Ctrl+T** opens a chat bar for typing (Esc closes it), **Ctrl+C** or *bye* exits.
 
 What `python main.py` does, step by step:
 

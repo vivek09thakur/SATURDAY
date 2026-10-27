@@ -9,23 +9,26 @@ class Listener:
 
     CHUNK_SECONDS = 0.1
 
-    def __init__(self, config, log=print):
+    def __init__(self, config, log=print, on_state=None):
         import sounddevice as sd
         from faster_whisper import WhisperModel
         self.sd = sd
         self.config = config
         self.log = log
+        self.on_state = on_state or (lambda state: None)
         cuda = config.device.startswith('cuda')
         self.model = WhisperModel(config.whisper_model, device='cuda' if cuda else 'cpu',
                                   compute_type='float16' if cuda else 'int8')
 
-    def record(self):
+    def record(self, cancel=None):
         cfg = self.config
         chunk = int(cfg.sample_rate * self.CHUNK_SECONDS)
         frames, speaking, silent, waited = [], False, 0.0, 0.0
-        print('Listening...', flush=True)
+        self.on_state('listening')
         with self.sd.InputStream(samplerate=cfg.sample_rate, channels=1, dtype='float32', blocksize=chunk) as stream:
             while True:
+                if cancel is not None and cancel():
+                    return None
                 data, _ = stream.read(chunk)
                 data = data[:, 0]
                 loud = float(np.sqrt(np.mean(data ** 2))) > cfg.silence_threshold
@@ -43,26 +46,29 @@ class Listener:
                 frames.append(data)
         return np.concatenate(frames)
 
-    def listen(self):
-        audio = self.record()
+    def listen(self, cancel=None):
+        audio = self.record(cancel)
         if audio is None:
+            self.on_state('idle')
             return ''
+        self.on_state('thinking')
         segments, _ = self.model.transcribe(audio, language='en', beam_size=1, vad_filter=True)
         text = ' '.join(segment.text.strip() for segment in segments).strip()
         if text:
-            print(f"You: {text}", flush=True)
+            self.log('you', text)
         return text
 
 
 class Speaker:
     """Text → edge-tts (mp3 bytes) → speakers. Falls back to printing if synthesis fails (e.g. offline)."""
 
-    def __init__(self, config, log=print):
+    def __init__(self, config, log=print, on_state=None):
         import sounddevice as sd
         import soundfile as sf
         self.sd, self.sf = sd, sf
         self.config = config
         self.log = log
+        self.on_state = on_state or (lambda state: None)
 
     async def synthesize(self, text):
         import edge_tts
@@ -73,23 +79,26 @@ class Speaker:
         return bytes(audio)
 
     def speak(self, text):
-        print(f"Saturday: {text}", flush=True)
+        self.log('saturday', text)
         try:
             data, rate = self.sf.read(io.BytesIO(asyncio.run(self.synthesize(text))), dtype='float32')
+            self.on_state('speaking')
             self.sd.play(data, rate)
             self.sd.wait()
         except Exception as error:
             self.log('error', f"speech failed: {type(error).__name__}: {error}")
+        finally:
+            self.on_state('idle')
 
 
 class VoiceIO:
 
-    def __init__(self, config, log=print):
-        self.speaker = Speaker(config, log)
-        self.listener = Listener(config, log)
+    def __init__(self, config, log=print, on_state=None):
+        self.speaker = Speaker(config, log, on_state)
+        self.listener = Listener(config, log, on_state)
 
-    def listen(self):
-        return self.listener.listen()
+    def listen(self, cancel=None):
+        return self.listener.listen(cancel)
 
     def say(self, text):
         self.speaker.speak(text)
@@ -97,7 +106,7 @@ class VoiceIO:
 
 class TextIO:
 
-    def listen(self):
+    def listen(self, cancel=None):
         try:
             return input('You: ').strip()
         except (EOFError, KeyboardInterrupt):

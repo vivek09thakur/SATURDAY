@@ -20,7 +20,8 @@ class Plugin:
         return f"- {cls.name}({', '.join(cls.parameters)}): {cls.description}"
 
     def summary(self, arguments):
-        return f"{self.name.replace('_', ' ')} {json.dumps(arguments)}"
+        label = self.name.replace('_', ' ')
+        return f"{label} {json.dumps(arguments)}" if arguments else label
 
     def validate(self, arguments):
         if not isinstance(arguments, dict):

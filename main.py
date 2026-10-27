@@ -7,6 +7,7 @@ set HF_REPO (+ HF_TOKEN) in .env and the result is pushed to the Hub so later ru
     python main.py                   talk to Saturday (model on Colab)
     python main.py --local           talk to Saturday (model on this machine)
     python main.py --text            keyboard instead of microphone (combinable with --local)
+    python main.py --tui             terminal UI with the clock character (add --text for keyboard only)
     python main.py finetune          fine-tune on Colab; --local to do it here
     python main.py model --local     run only the model server (what the Colab VM runs)
     python main.py --key=value       override any field of common.common.Config
@@ -40,6 +41,9 @@ def model(config, log):
 
 
 def talk(config, log):
+    if config.tui:
+        from controls.tui import TUI
+        return TUI(config, lambda tui_log: build(config, tui_log), lambda sink: Log(sink=sink)).run()
     from controls.voice import TextIO, VoiceIO
     from model.assistant import Session
     assistant = build(config, log)

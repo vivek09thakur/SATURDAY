@@ -61,6 +61,12 @@ def contains_any(text, phrases):
     return any(phrase in text for phrase in phrases)
 
 
+def port_in_use(host, port):
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        return sock.connect_ex((host, port)) == 0
+
+
 def wait_for_health(url, process=None, attempts=120, interval=1.0):
     # An SSH -L port accepts connections even when the remote end is down, so check end to end.
     import requests

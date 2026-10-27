@@ -12,11 +12,11 @@ import subprocess
 import sys
 import time
 
-from common.constants import (ARCHIVE_EXCLUDE, CA_BUNDLE_FILE, EXPORT_DIR, LOCAL_ZIP, MODEL_HOST, REMOTE_ENV,
-                              REMOTE_LOG, REMOTE_OK, REMOTE_OUT_ZIP, REMOTE_PACKAGES, REMOTE_ROOT, REMOTE_STARTED,
-                              REMOTE_ZIP, RETRY_DELAY, SERVER_AUTH_OID, SESSION_LINE, SSH_HOST, SSH_KEYS, SSH_OPTIONS,
-                              TRANSIENT_ERRORS, UPLOAD_RETRIES)
-from common.utils import wait_for_health, zip_dir
+from common.constants import (ARCHIVE_EXCLUDE, ARCHIVE_MAX_MB, CA_BUNDLE_FILE, EXPORT_DIR, LOCAL_ZIP, MODEL_HOST,
+                              REMOTE_ENV, REMOTE_LOG, REMOTE_OK, REMOTE_OUT_ZIP, REMOTE_PACKAGES, REMOTE_ROOT,
+                              REMOTE_STARTED, REMOTE_ZIP, RETRY_DELAY, SERVER_AUTH_OID, SESSION_LINE, SSH_HOST,
+                              SSH_KEYS, SSH_OPTIONS, TRANSIENT_ERRORS, UPLOAD_RETRIES)
+from common.utils import port_in_use, wait_for_health, zip_dir
 
 REMOTE_SETUP = '''
 import os, shutil, subprocess, sys, time, zipfile
@@ -173,7 +173,11 @@ class ColabRunner:
     def deploy(self):
         source = os.path.join(self.export, LOCAL_ZIP)
         count = zip_dir(self.root, source, ARCHIVE_EXCLUDE)
-        print(f"packed {count} files ({os.path.getsize(source) / 1e6:.1f} MB)")
+        size_mb = os.path.getsize(source) / 1e6
+        print(f"packed {count} files ({size_mb:.1f} MB)")
+        if size_mb > ARCHIVE_MAX_MB:
+            raise SystemExit(f"archive is {size_mb:.0f} MB; expected a few MB of source. Something large is in the project "
+                             f"folder (a virtualenv, model weights?). Add it to ARCHIVE_EXCLUDE in common/constants.py.")
         self.stop_others()
         if not self.config.reuse:
             try:
@@ -246,7 +250,7 @@ class ColabRunner:
 
     def remote_args(self, command, flags):
         # --local stops the VM from trying to reach Colab itself; --platform makes the tool prompt describe this OS.
-        passthrough = [f for f in flags if not f.startswith(('--local', '--model_url=', '--platform=', '--text'))]
+        passthrough = [f for f in flags if not f.startswith(('--local', '--model_url=', '--platform=', '--text', '--tui'))]
         return [command, '--local', f'--platform={self.config.platform_name()}', *passthrough]
 
     def run(self, command, flags):
@@ -263,6 +267,9 @@ class ColabRunner:
             self.release()
 
     def tunnel(self, port):
+        if port_in_use(MODEL_HOST, port):
+            raise SystemExit(f"port {port} on this machine is already in use; talk would connect to that instead of Colab. "
+                             f"Stop whatever listens there or pass --model_port=<other>.")
         proxy = [self.colab_path, 'ssh', '--proxy-mode', '-s', self.config.session]
         proxy = subprocess.list2cmdline(proxy) if os.name == 'nt' else shlex.join(proxy)
         options = [f'ProxyCommand={proxy}', f'UserKnownHostsFile={os.devnull}', *SSH_OPTIONS]
