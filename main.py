@@ -90,6 +90,10 @@ def trust_os_certificates():
 def main():
     load_env()
     trust_os_certificates()
+    # Colab streams progress bars with block glyphs; a redirected Windows stdout is cp1252 and would crash on them.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(errors='replace')
     argv = sys.argv[1:]
     command = argv[0] if argv and not argv[0].startswith('--') else 'talk'
     if command not in COMMANDS:
