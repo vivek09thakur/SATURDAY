@@ -8,3 +8,4 @@ out-saturday/
 export/
 data/contacts.json
 *.pyc
+.venv/

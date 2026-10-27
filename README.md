@@ -1,7 +1,6 @@
 # Saturday
 
-A personal voice assistant with a small language model behind it. Say something, Saturday answers out loud and, when
-needed, does things on your computer: opens sites, plays YouTube, checks the weather, sends email, shuts the PC down.
+A personal voice assistant with a small language model behind it. Say something, Saturday answers out loud and, when needed, does things on your computer: opens sites, plays YouTube, checks the weather, sends email, shuts the PC down.
 
 - **Brain**: [SmolLM2-1.7B-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct), fine-tuned on
   `data/conversations.txt` so it talks like Saturday and knows how to call tools.
