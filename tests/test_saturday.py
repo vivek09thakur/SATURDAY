@@ -41,7 +41,7 @@ class ScaffoldTest(unittest.TestCase):
         with open(os.path.join(target, 'data', 'conversations.txt'), encoding='utf-8') as f:
             self.assertNotIn('__NAME__', f.read())
         plugins = registry(config)
-        self.assertEqual([p.name for p in plugins], ['roll_dice'])  # the example plugin, discovered from plugins/
+        self.assertEqual([p.name for p in plugins], ['roll_dice'])
         conversations = ConversationFile(config.path(config.data_path), 'SYS', config.name).load()
         self.assertGreater(len(conversations), 10)
         for conversation in conversations:

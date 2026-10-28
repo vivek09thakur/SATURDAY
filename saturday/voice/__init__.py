@@ -38,7 +38,7 @@ class Listener:
                         speaking = True
                     elif waited >= cfg.listen_timeout:
                         return None
-                    frames = frames[-5:]  # keep a little lead-in so the first word is not clipped
+                    frames = frames[-5:]
                 else:
                     silent = 0.0 if loud else silent + self.CHUNK_SECONDS
                     if silent >= cfg.silence_seconds or len(frames) * self.CHUNK_SECONDS >= cfg.max_record_seconds:
@@ -53,7 +53,6 @@ class Listener:
             return ''
         self.on_state('thinking')
         segments, _ = self.model.transcribe(audio, language='en', beam_size=1, vad_filter=True)
-        # Whisper invents sentences on noise; such segments have low confidence and a high no-speech score.
         kept = [s.text.strip() for s in segments if s.no_speech_prob < 0.6 and s.avg_logprob > -1.0]
         text = ' '.join(kept).strip()
         if text:
@@ -108,7 +107,7 @@ class VoiceIO:
 
 class TextIO:
 
-    CPS = 45  # typewriter speed, characters per second
+    CPS = 45
 
     def __init__(self, config):
         self.config = config

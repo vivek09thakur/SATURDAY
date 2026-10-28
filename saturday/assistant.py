@@ -15,7 +15,6 @@ def build_system_prompt(config, plugins):
 
 
 def context_prompt(config, user, now=None):
-    # Not part of fine-tuning: who is here and what time it is change every session.
     now = now or datetime.now()
     who = user.describe() + ('' if user.is_owner else ' ' + config.guest_text()) if user is not None else ''
     return CONTEXT_PROMPT.format(user=who, time=now.strftime('%A %d %B %Y, %I:%M %p')).strip()
@@ -28,7 +27,7 @@ class ToolCall:
     ARGUMENT_KEYS = ('arguments', 'parameters', 'params', 'args', 'input')
 
     def __init__(self, name, arguments, error=None):
-        self.id = uuid.uuid4().hex  # lets a UI confirm or deny this exact call later
+        self.id = uuid.uuid4().hex
         self.name = name
         self.arguments = arguments
         self.error = error
@@ -39,7 +38,6 @@ class ToolCall:
 
     @staticmethod
     def loads(text):
-        # Small models write Windows paths with single backslashes, which is invalid JSON escaping.
         for candidate in (text, text.replace('\\', '\\\\'), re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', text)):
             try:
                 return json.loads(candidate)
@@ -51,7 +49,6 @@ class ToolCall:
     def parse(cls, text):
         match = cls.PATTERN.search(text)
         if not match:
-            # A reply that is nothing but a JSON object naming a tool counts too (some backends drop the tags).
             bare = re.fullmatch(r'\s*(\{.*\})\s*', text, re.DOTALL)
             if not bare or '"name"' not in bare.group(1):
                 return None
@@ -65,7 +62,6 @@ class ToolCall:
             name = next((data[key] for key in cls.NAME_KEYS if isinstance(data.get(key), str)), None)
             arguments = next((data[key] for key in cls.ARGUMENT_KEYS if isinstance(data.get(key), dict)), None)
             if name is None and len(data) == 1:
-                # shorthand like {"weather": {"city": "Ranchi"}}
                 name, value = next(iter(data.items()))
                 arguments = value if isinstance(value, dict) else None
             if arguments is None:
@@ -79,9 +75,9 @@ class Session:
 
     def __init__(self, user=None, session_id=None):
         self.id = session_id or uuid.uuid4().hex
-        self.user = user  # saturday.users.User or None
+        self.user = user
         self.history = []
-        self.pending = None  # tool call waiting for the user's permission
+        self.pending = None
 
     def begin(self):
         """Called at the start of every turn; subclasses reset per-turn state here."""
@@ -128,7 +124,6 @@ class Assistant:
     def is_goodbye(self, text):
         return contains_any(text, self.config.goodbye_words)
 
-    # --- hooks ---
 
     def rewrite(self, session, call):
         return call
@@ -146,10 +141,8 @@ class Assistant:
         return self.GIVE_UP.format(title=self.title(session))
 
     def allowed(self, session, plugin):
-        # Tools that ask for confirmation are reserved for the owner when users are known.
         return session.user is None or session.user.is_owner
 
-    # --- the loop ---
 
     def respond(self, session, message):
         with self.lock:

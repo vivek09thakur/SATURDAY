@@ -15,7 +15,7 @@ class ModelServer:
         from saturday.plugins import registry
         self.config = config
         self.log = log
-        self.lock = threading.Lock()  # one generation at a time; the GPU is not shared
+        self.lock = threading.Lock()
         self.chat = chat_backend(config, log).load(build_system_prompt(config, registry(config)))
 
     def generate(self, messages):

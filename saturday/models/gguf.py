@@ -46,7 +46,6 @@ class GGUFChat(ChatBackend):
         try:
             text = timed(self.log, f"generated ({len(messages)} messages)", lambda: self.complete(messages))
         except Exception as error:
-            # Some chat templates reject the `tool` role; retry with tool results spoken by the user.
             if not any(m['role'] == 'tool' for m in messages):
                 raise
             self.log('model', f"template rejected tool messages ({type(error).__name__}); retrying as user turns")
@@ -57,7 +56,6 @@ class GGUFChat(ChatBackend):
 
     @staticmethod
     def tag_tool_call(text):
-        # llama.cpp drops special tokens such as Qwen's <tool_call> when decoding; put the tags back around bare JSON.
         if '<tool_call>' in text or not text.startswith('{'):
             return text
         candidate = re.match(r'\{.*\}', text, re.DOTALL)

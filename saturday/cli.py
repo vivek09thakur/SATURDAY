@@ -22,7 +22,7 @@ from saturday.config import Log, configure, find_project, slugify
 from saturday.constants import PROJECT_FILE, USERS_PATH
 from saturday.utils import greeting, is_yes, load_env
 
-TEMPLATE_FILES = {  # package template -> path inside the new project
+TEMPLATE_FILES = {
     'saturday.toml': 'saturday.toml',
     'README.md': 'README.md',
     'gitignore': '.gitignore',
@@ -32,8 +32,6 @@ TEMPLATE_FILES = {  # package template -> path inside the new project
     'example_plugin.py': 'plugins/example.py',
 }
 
-
-# --- commands --------------------------------------------------------------------------------------------
 
 def build(config, log):
     from saturday.assistant import Assistant
@@ -105,10 +103,8 @@ def check(config, log):
 
 
 COMMANDS = {'talk': talk, 'finetune': finetune, 'model': model, 'adduser': adduser, 'check': check}
-REMOTE_COMMANDS = ('talk', 'finetune')  # run on Colab unless --local or --model_url is given
+REMOTE_COMMANDS = ('talk', 'finetune')
 
-
-# --- init ------------------------------------------------------------------------------------------------
 
 def init(args):
     target = next((a for a in args if not a.startswith('--')), None)
@@ -138,10 +134,7 @@ def init(args):
     print("and run `saturday finetune` to teach the model. Secrets go in .env (see .env.example).")
 
 
-# --- main ------------------------------------------------------------------------------------------------
-
 def trust_os_certificates():
-    # Behind a TLS-inspecting proxy the corporate CA is only in the OS store; make Python's ssl use it.
     try:
         import truststore
         truststore.inject_into_ssl()
@@ -151,7 +144,6 @@ def trust_os_certificates():
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else list(argv)
-    # Colab streams progress bars with block glyphs; a redirected Windows stdout is cp1252 and would crash on them.
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, 'reconfigure'):
             stream.reconfigure(errors='replace')
@@ -170,7 +162,7 @@ def main(argv=None):
         raise SystemExit(f"no {PROJECT_FILE} found here or in a parent folder. Create a project with `saturday init my-bot`, "
                          "or run from inside one (or pass --root=path).")
     root = os.path.abspath(root)
-    os.chdir(root)  # every project path (data/, plugins/, .env, out dir) is relative to the project
+    os.chdir(root)
     load_env()
     trust_os_certificates()
     config = configure([f for f in flags if not f.startswith('--root=')], root)

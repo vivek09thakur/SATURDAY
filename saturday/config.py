@@ -36,74 +36,66 @@ def slugify(text):
 
 @dataclass
 class Config:
-    # [assistant] who the assistant is
-    root: str = '.'  # project directory (where saturday.toml lives); every other path is relative to it
+    root: str = '.'
     name: str = DEFAULT_NAME
     author: str = 'the owner'
-    persona: str = DEFAULT_PERSONA  # system prompt; {name} and {author} are filled in
-    guest_prompt: str = DEFAULT_GUEST_PROMPT  # added to the context line for anyone who is not the owner
-    owner_title: str = OWNER_TITLE  # how the owner is addressed (boss, sir, ...)
+    persona: str = DEFAULT_PERSONA
+    guest_prompt: str = DEFAULT_GUEST_PROMPT
+    owner_title: str = OWNER_TITLE
     guest_title: str = GUEST_TITLE
-    greetings: list = field(default_factory=lambda: [list(g) for g in DEFAULT_GREETINGS])  # [[from_hour, text], ...]
+    greetings: list = field(default_factory=lambda: [list(g) for g in DEFAULT_GREETINGS])
     goodbye_words: list = field(default_factory=lambda: list(DEFAULT_GOODBYE_WORDS))
     yes_words: list = field(default_factory=lambda: list(DEFAULT_YES_WORDS))
-    user: str = ''  # who is talking (name from data/users.json); asked at startup when empty
-    max_history: int = 6  # user turns kept in context
-    max_tool_calls: int = 3  # per user turn
+    user: str = ''
+    max_history: int = 6
+    max_tool_calls: int = 3
     max_tool_result: int = 1500
-    # where the model runs
-    local: bool = False  # run the model on this machine instead of a Colab GPU
-    model_url: str = ''  # when set, generation is delegated to a model server at this URL
+    local: bool = False
+    model_url: str = ''
     model_port: int = MODEL_PORT
     hf_repo: str = field(default_factory=lambda: os.environ.get(HF_REPO_ENV, ''))
-    platform: str = ''  # OS the tools run on; defaults to this machine (set when the model runs elsewhere)
-    # [colab]
-    gpu: str = 'T4'  # T4, L4, A100 or '' for a CPU runtime
-    session: str = ''  # Colab session name; defaults to the assistant's name
-    keep: bool = False  # leave the VM running afterwards
-    reuse: bool = False  # attach to an existing session instead of creating one
+    platform: str = ''
+    gpu: str = 'T4'
+    session: str = ''
+    keep: bool = False
+    reuse: bool = False
     remote_timeout: int = REMOTE_TIMEOUT
-    archive_exclude: list = field(default_factory=list)  # extra file/folder patterns kept out of the Colab upload
-    # [model]
-    backend: str = 'transformers'  # transformers (HF model + LoRA fine-tune) | gguf (llama.cpp, inference only, CPU-friendly)
-    model_name: str = BASE_MODEL  # HF repo id or local path; for gguf a repo holding .gguf files or a .gguf path
-    model_file: str = ''  # gguf only: file name or glob inside the repo (default: a Q4_K_M quant)
+    archive_exclude: list = field(default_factory=list)
+    backend: str = 'transformers'
+    model_name: str = BASE_MODEL
+    model_file: str = ''
     out_dir: str = OUT_DIR
     data_path: str = CONVERSATIONS_PATH
-    train: bool = False  # force a fine-tune even if a trained adapter exists
-    lora_rank: int = 16  # LoRA on attention + MLP projections of the language model
+    train: bool = False
+    lora_rank: int = 16
     lora_alpha: int = 32
     lora_dropout: float = 0.05
     epochs: int = 3
     learning_rate: float = 2e-4
     batch_size: int = 1
-    accumulation: int = 2  # optimizer step every N batches
+    accumulation: int = 2
     max_length: int = 1024
-    context_length: int = 4096  # gguf: prompt + answer window
-    gpu_layers: int = -1  # gguf: layers offloaded to the GPU when llama.cpp was built with GPU support (-1 = all)
+    context_length: int = 4096
+    gpu_layers: int = -1
     temperature: float = 0.3
     repetition_penalty: float = 1.15
     no_repeat_ngram_size: int = 6
     max_new_tokens: int = 200
     seed: int = SEED
     device: str = field(default_factory=default_device)
-    # [plugins]
-    plugin_dirs: list = field(default_factory=lambda: [PLUGIN_DIR])  # project folders with Plugin subclasses
-    registry: str = DEFAULT_REGISTRY  # `module:callable(config)` returning the tool registry (apps swap in their own)
-    # [voice]
-    text: bool = False  # keyboard instead of microphone and speaker
+    plugin_dirs: list = field(default_factory=lambda: [PLUGIN_DIR])
+    registry: str = DEFAULT_REGISTRY
+    text: bool = False
     whisper_model: str = WHISPER_MODEL
     voice: str = TTS_VOICE
     sample_rate: int = SAMPLE_RATE
     max_record_seconds: float = 12.0
-    silence_seconds: float = 1.2  # stop recording after this much silence once speech began
-    silence_threshold: float = 0.01  # RMS below this counts as silence
-    listen_timeout: float = 8.0  # give up if nobody speaks for this long
-    # [app] free-form settings of the application built on Saturday
+    silence_seconds: float = 1.2
+    silence_threshold: float = 0.01
+    listen_timeout: float = 8.0
     app: dict = field(default_factory=dict)
 
     def __getattr__(self, name):
-        # Only reached for attributes that are not dataclass fields: look in the [app] table.
         app = self.__dict__.get('app') or {}
         if name in app:
             return app[name]
@@ -126,7 +118,6 @@ class Config:
         return self.session or slugify(self.name)
 
     def runs_remote(self):
-        # Colab is only worth it for the transformers backend; gguf exists precisely to run on this machine.
         return not self.local and not self.model_url and self.backend == 'transformers'
 
 
@@ -210,7 +201,7 @@ class Log:
 
     def __init__(self, quiet=False, sink=None):
         self.quiet = quiet
-        self.sink = sink  # (kind, text) -> None; default prints
+        self.sink = sink
 
     def __call__(self, kind, text):
         if self.quiet and kind in ('model',):

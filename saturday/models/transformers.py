@@ -8,7 +8,7 @@ from saturday.utils import timed, trim_loop
 
 ADAPTER_FILE = 'adapter_config.json'
 LORA_TARGETS = ('q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj')
-STALE_HUB_FILES = ('model.safetensors', 'config.json', 'generation_config.json')  # left by old full-model pushes
+STALE_HUB_FILES = ('model.safetensors', 'config.json', 'generation_config.json')
 
 
 class TransformersChat(ChatBackend):
@@ -21,7 +21,6 @@ class TransformersChat(ChatBackend):
         self.tokenizer = None
         self.model = None
 
-    # --- where is the adapter? ---
 
     def adapter_base(self, source):
         """Base model an adapter at `source` (local dir or Hub repo) was trained on, or None if there is none."""
@@ -56,10 +55,8 @@ class TransformersChat(ChatBackend):
                 self.log('info', f"adapter at {source} was trained on {base}, not {cfg.model_name}; training again")
         return None
 
-    # --- loading ---
 
     def tokenizer_kwargs(self):
-        # Mistral tokenizers ship a pre-tokenization regex that transformers>=5 flags as wrong unless this is set.
         return {'fix_mistral_regex': True} if 'mistral' in self.config.model_name.lower() else {}
 
     def load_base(self):
@@ -74,7 +71,6 @@ class TransformersChat(ChatBackend):
         try:
             model = AutoModelForCausalLM.from_pretrained(cfg.model_name, dtype=dtype)
         except ValueError:
-            # Vision-language checkpoints (e.g. Ministral 3) register under the image-text class; text-only use is fine.
             from transformers import AutoModelForImageTextToText
             model = AutoModelForImageTextToText.from_pretrained(cfg.model_name, dtype=dtype)
         self.model = model.to(cfg.device)
@@ -95,7 +91,6 @@ class TransformersChat(ChatBackend):
         self.model.eval()
         return self
 
-    # --- fine-tuning ---
 
     def lora_targets(self):
         import torch
@@ -126,7 +121,7 @@ class TransformersChat(ChatBackend):
         self.model.enable_input_require_grads()
         lora = LoraConfig(r=cfg.lora_rank, lora_alpha=cfg.lora_alpha, lora_dropout=cfg.lora_dropout,
                           target_modules=self.lora_targets(), task_type='CAUSAL_LM')
-        peft_model = get_peft_model(self.model, lora)  # adapters are fp32 even when the base is fp16
+        peft_model = get_peft_model(self.model, lora)
         params = [p for p in peft_model.parameters() if p.requires_grad]
         optimizer = torch.optim.AdamW(params, lr=cfg.learning_rate)
         scaler = torch.amp.GradScaler('cuda', enabled=cuda)
@@ -179,7 +174,6 @@ class TransformersChat(ChatBackend):
         except Exception as error:
             self.log('error', f"push to {repo} failed (is HF_TOKEN set with write access?): {type(error).__name__}: {error}")
 
-    # --- inference ---
 
     def generation_kwargs(self):
         cfg = self.config

@@ -13,11 +13,11 @@ from saturday.constants import GUEST_TITLE, USERS_PATH
 @dataclass
 class User:
     name: str
-    title: str = GUEST_TITLE  # how the assistant addresses them: boss, sir, ma'am, their name...
-    role: str = 'guest'  # owner | family | friend | guest
-    about: str = ''  # one line the assistant knows about them
+    title: str = GUEST_TITLE
+    role: str = 'guest'
+    about: str = ''
     aliases: list = field(default_factory=list)
-    pin: str = ''  # 'salt:hash' or '' for no PIN
+    pin: str = ''
 
     @property
     def is_owner(self):
@@ -61,7 +61,6 @@ def guest(name):
 
 
 def default_owner(config):
-    # Used when data/users.json does not exist yet: whoever is at the keyboard is the owner.
     return User(name=config.owner_title.capitalize(), title=config.owner_title, role='owner')
 
 

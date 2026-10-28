@@ -15,11 +15,11 @@ import sys
 class Plugin:
     """A tool the model can call. Subclass it, set the class attributes, implement run(**arguments)."""
 
-    name = ''  # snake_case, what the model writes in the tool call
-    description = ''  # one line, shown to the model
-    parameters = {}  # argument name -> description
+    name = ''
+    description = ''
+    parameters = {}
     required = ()
-    confirm = False  # ask the user before running (owner only)
+    confirm = False
 
     def __init__(self, config):
         self.config = config
@@ -34,7 +34,6 @@ class Plugin:
     def validate(self, arguments):
         if not isinstance(arguments, dict):
             raise ValueError('arguments must be an object')
-        # Small models invent argument names; keep the known ones rather than failing the whole call.
         arguments = {key: str(value) for key, value in arguments.items() if key in self.parameters}
         missing = [key for key in self.required if not arguments.get(key)]
         if missing:

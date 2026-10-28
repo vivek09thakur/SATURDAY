@@ -69,7 +69,6 @@ if proc.wait() != 0:
 print({ok!r})
 '''
 
-# The model server outlives this cell: detached from the kernel and polled until /health answers.
 REMOTE_MODEL = REMOTE_SETUP + '''
 import urllib.request
 proc = subprocess.Popen([sys.executable, '-u', *{args!r}], stdout=open({log!r}, 'w'),
@@ -98,14 +97,13 @@ class ColabRunner:
 
     def __init__(self, config, root):
         self.config = config
-        self.root = root  # the project directory
+        self.root = root
         self.export = os.path.join(root, EXPORT_DIR)
         self.colab_path = shutil.which('colab')
         if self.colab_path is None:
             raise SystemExit("the 'colab' CLI is not installed: pip install google-colab-cli  "
                              "(or run everything on this machine with --local)")
         os.makedirs(self.export, exist_ok=True)
-        # Piped stdout defaults to cp1252 on Windows, which cannot encode progress-bar glyphs from the VM.
         self.env = dict(os.environ, PYTHONIOENCODING='utf-8', PYTHONUTF8='1')
         bundle = self.ca_bundle()
         if bundle:
@@ -117,10 +115,8 @@ class ColabRunner:
                                log=REMOTE_LOG, ok=REMOTE_OK, started=REMOTE_STARTED, packages=list(REMOTE_PACKAGES),
                                remove=list(REMOTE_REMOVE), env=remote_env, **values)
 
-    # --- local environment ---
 
     def ca_bundle(self):
-        # The CLI only trusts certifi; behind a TLS-inspecting proxy the extra CA lives in the OS store (Windows).
         if os.environ.get('REQUESTS_CA_BUNDLE') or not hasattr(ssl, 'enum_certificates'):
             return None
         pems = []
@@ -148,7 +144,6 @@ class ColabRunner:
         print(f"creating SSH key {key} for the Colab tunnel")
         subprocess.run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-f', key], check=True)
 
-    # --- colab CLI ---
 
     def colab(self, *args, **kwargs):
         command = [self.colab_path, *args]
@@ -163,7 +158,6 @@ class ColabRunner:
         return re.findall(SESSION_LINE, output, re.MULTILINE)
 
     def stop_others(self):
-        # The free tier allows a single session.
         for name in self.sessions():
             if self.config.reuse and name == self.config.session_name():
                 continue
@@ -178,7 +172,6 @@ class ColabRunner:
         self.colab(*args)
 
     def pack(self, source):
-        # project files under project/, the framework under saturday/ (so the VM imports this very version)
         exclude = (*ARCHIVE_EXCLUDE, *self.config.archive_exclude)
         count = zip_dir(self.root, source, exclude, prefix=REMOTE_PROJECT_DIR)
         package = os.path.dirname(os.path.abspath(saturday.__file__))
@@ -212,7 +205,6 @@ class ColabRunner:
                 self.session('upload', source, REMOTE_ZIP)
                 break
             except subprocess.CalledProcessError:
-                # A fresh runtime's hostname can take a while to resolve; the CLI gives up immediately.
                 if attempt == UPLOAD_RETRIES:
                     self.release()
                     raise SystemExit('upload failed; the runtime never became reachable')
@@ -239,7 +231,6 @@ class ColabRunner:
                     print(line, end='', flush=True)
             if process.wait() == 0 and ok:
                 return
-            # The kernel's websocket is flaky right after provisioning; only retry if our script never began.
             transient = not started and any(marker in ''.join(output) for marker in TRANSIENT_ERRORS)
             if not transient or attempt == retries:
                 raise RemoteError('remote command failed')
@@ -268,12 +259,10 @@ class ColabRunner:
         else:
             self.session('stop')
 
-    # --- commands ---
 
-    SKIP_FLAGS = ('--local', '--model_url=', '--platform=', '--text', '--root=')  # meaningless or harmful on the VM
+    SKIP_FLAGS = ('--local', '--model_url=', '--platform=', '--text', '--root=')
 
     def remote_args(self, command, flags):
-        # --local stops the VM from trying to reach Colab itself; --platform makes the tool prompt describe this OS.
         passthrough = [f for f in flags if not f.startswith(self.SKIP_FLAGS)]
         return ['-m', 'saturday', command, '--local', f'--platform={self.config.platform_name()}', *passthrough]
 

@@ -9,7 +9,6 @@ __all__ = ['Assistant', 'Config', 'Plugin', 'Registry', 'Session', 'configure', 
 
 
 def __getattr__(name):
-    # Lazy so `import saturday` stays cheap (the CLI and the Colab VM import it before heavy deps are needed).
     if name in ('Assistant', 'Session'):
         from saturday import assistant
         return getattr(assistant, name)

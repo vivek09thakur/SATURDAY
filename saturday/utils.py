@@ -9,7 +9,6 @@ from saturday.constants import ENV_FILE
 
 
 def load_env(path=ENV_FILE):
-    # KEY=VALUE lines; the real environment wins over the file.
     if not os.path.exists(path):
         return
     with open(path, encoding='utf-8') as f:
@@ -39,7 +38,6 @@ LOOP = re.compile(r'(.{4,80}?)(?:\1){2,}', re.DOTALL)
 
 
 def trim_loop(text):
-    # Small models sometimes stutter ("boss, boss, boss, ..."); keep one copy and drop the tail.
     match = LOOP.search(text)
     if match is None:
         return text
@@ -73,7 +71,6 @@ def port_in_use(host, port):
 
 
 def wait_for_health(url, process=None, attempts=120, interval=1.0):
-    # An SSH -L port accepts connections even when the remote end is down, so check end to end.
     import requests
     for _ in range(attempts):
         if process is not None and process.poll() is not None:
