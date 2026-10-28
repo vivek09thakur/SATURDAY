@@ -13,9 +13,9 @@ import sys
 import time
 
 from common.constants import (ARCHIVE_EXCLUDE, ARCHIVE_MAX_MB, CA_BUNDLE_FILE, EXPORT_DIR, LOCAL_ZIP, MODEL_HOST,
-                              REMOTE_ENV, REMOTE_LOG, REMOTE_OK, REMOTE_OUT_ZIP, REMOTE_PACKAGES, REMOTE_ROOT,
-                              REMOTE_STARTED, REMOTE_ZIP, RETRY_DELAY, SERVER_AUTH_OID, SESSION_LINE, SSH_HOST,
-                              SSH_KEYS, SSH_OPTIONS, TRANSIENT_ERRORS, UPLOAD_RETRIES)
+                              REMOTE_ENV, REMOTE_LOG, REMOTE_OK, REMOTE_OUT_ZIP, REMOTE_PACKAGES, REMOTE_REMOVE,
+                              REMOTE_ROOT, REMOTE_STARTED, REMOTE_ZIP, RETRY_DELAY, SERVER_AUTH_OID, SESSION_LINE,
+                              SSH_HOST, SSH_KEYS, SSH_OPTIONS, TRANSIENT_ERRORS, UPLOAD_RETRIES)
 from common.utils import port_in_use, wait_for_health, zip_dir
 
 REMOTE_SETUP = '''
@@ -30,6 +30,7 @@ for stale in ({out_zip!r}, {log!r}):
 zipfile.ZipFile({zip!r}).extractall(root)
 os.remove({zip!r})
 os.chdir(root)
+subprocess.run([sys.executable, '-m', 'pip', 'uninstall', '-y', '-q', *{remove!r}], capture_output=True)
 pip = subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', *{packages!r}], capture_output=True, text=True)
 if pip.returncode != 0:
     print(pip.stdout[-2000:], pip.stderr[-2000:], flush=True)
@@ -108,7 +109,7 @@ class ColabRunner:
         remote_env = {key: os.environ[key] for key in REMOTE_ENV if os.environ.get(key)}
         return template.format(root=REMOTE_ROOT, zip=REMOTE_ZIP, out_zip=REMOTE_OUT_ZIP, log=REMOTE_LOG,
                                ok=REMOTE_OK, started=REMOTE_STARTED, packages=list(REMOTE_PACKAGES),
-                               env=remote_env, **values)
+                               remove=list(REMOTE_REMOVE), env=remote_env, **values)
 
     # --- local environment ---
 

@@ -9,4 +9,4 @@ export/
 data/contacts.json
 data/users.json
 *.pyc
-.venv/
+.venv/finetune.log

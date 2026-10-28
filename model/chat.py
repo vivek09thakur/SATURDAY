@@ -71,13 +71,17 @@ class SaturdayChat(ChatBackend):
 
     # --- loading ---
 
+    def tokenizer_kwargs(self):
+        # Mistral tokenizers ship a pre-tokenization regex that transformers>=5 flags as wrong unless this is set.
+        return {'fix_mistral_regex': True} if 'mistral' in self.config.model_name.lower() else {}
+
     def load_base(self):
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
         cfg = self.config
         cuda = cfg.device.startswith('cuda')
         dtype = torch.float16 if cuda else torch.float32
-        self.tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(cfg.model_name, **self.tokenizer_kwargs())
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         try:

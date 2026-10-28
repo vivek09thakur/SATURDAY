@@ -44,6 +44,7 @@ REMOTE_LOG = '/content/saturday-model.log'
 REMOTE_OK = '__SATURDAY_OK__'  # printed by every remote script on success; IPython swallows exit codes
 REMOTE_STARTED = '__SATURDAY_STARTED__'  # first line of every remote script: distinguishes our failures from the CLI's
 REMOTE_PACKAGES = ('transformers>=5.0.0', 'peft>=0.15', 'huggingface_hub')  # torch/numpy/requests are preinstalled on Colab
+REMOTE_REMOVE = ('torchao',)  # Colab ships torchao 0.10; peft refuses to build LoRA layers with anything below 0.16
 REMOTE_TIMEOUT = 3 * 3600
 TRANSIENT_ERRORS = ('WebSocketConnectionClosedException', 'socket is already closed', 'Connection is already closed',
                     'ConnectionResetError', 'TimeoutError')
