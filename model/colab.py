@@ -260,7 +260,7 @@ class ColabRunner:
         try:
             self.exec(self.render(REMOTE_RUN, args=self.remote_args(command, flags)))
             if self.config.hf_repo:
-                print(f"fine-tuned model is on the Hub as {self.config.hf_repo}; Colab runs will load it from there")
+                print(f"adapter is on the Hub as {self.config.hf_repo}; Colab runs will load it from there")
             else:
                 self.download()
         finally:
@@ -302,7 +302,7 @@ class ColabRunner:
             if tunnel is not None and tunnel.poll() is None:
                 tunnel.terminate()
             if not self.config.keep and not self.config.hf_repo:
-                print("note: the fine-tuned model stays on the VM and is lost when it stops; "
+                print("note: the trained adapter stays on the VM and is lost when it stops; "
                       "set HF_REPO in .env so it is pushed to the Hub, or run `python main.py finetune` to download it")
             try:
                 self.release()

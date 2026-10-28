@@ -1,4 +1,4 @@
-import os
+﻿import os
 import time
 from contextlib import nullcontext
 
@@ -19,113 +19,137 @@ class ChatBackend:
         raise NotImplementedError
 
 
+ADAPTER_FILE = 'adapter_config.json'
+LORA_TARGETS = ('q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj')
+STALE_HUB_FILES = ('model.safetensors', 'config.json', 'generation_config.json')  # left by the old full-model pushes
+
+
 class SaturdayChat(ChatBackend):
-    """Picks the first usable of: local out_dir, Hugging Face Hub repo, base model. A saved fine-tune is only
-    used if it was built on the same architecture as the configured base model. Loading the base model triggers a
-    fine-tune, which is saved locally and pushed to the Hub when configured."""
+    """Base model + LoRA adapter. The adapter is looked up in out_dir, then on the Hub (HF_REPO); it is only reused if
+    it was trained on the configured base model. Without one, load() fine-tunes a fresh adapter, saves it, pushes it
+    to the Hub when configured, and merges it into the base weights for inference."""
 
     def __init__(self, config, log=print):
         super().__init__(config, log)
         self.tokenizer = None
         self.model = None
 
-    def is_trained(self):
-        return os.path.exists(os.path.join(self.config.out_dir, 'config.json'))
+    # --- where is the adapter? ---
 
-    def on_hub(self):
-        repo = self.config.hf_repo
-        if not repo:
-            return False
-        try:
-            from huggingface_hub import HfApi
-            return HfApi().file_exists(repo, 'config.json')
-        except Exception as error:
-            self.log('error', f"could not reach the Hub for {repo}: {type(error).__name__}: {error}")
-            return False
-
-    @staticmethod
-    def architectures(source):
+    def adapter_base(self, source):
+        """Base model an adapter at `source` (local dir or Hub repo) was trained on, or None if there is none."""
         import json
-        if os.path.isdir(source):
-            path = os.path.join(source, 'config.json')
-        else:
-            from huggingface_hub import hf_hub_download
-            path = hf_hub_download(source, 'config.json')
-        with open(path, encoding='utf-8') as f:
-            return tuple(json.load(f).get('architectures', ()))
-
-    def same_family(self, source):
         try:
-            trained, base = self.architectures(source), self.architectures(self.config.model_name)
+            if os.path.isdir(source):
+                path = os.path.join(source, ADAPTER_FILE)
+                if not os.path.exists(path):
+                    return None
+            else:
+                from huggingface_hub import HfApi, hf_hub_download
+                if not HfApi().file_exists(source, ADAPTER_FILE):
+                    return None
+                path = hf_hub_download(source, ADAPTER_FILE)
+            with open(path, encoding='utf-8') as f:
+                return json.load(f).get('base_model_name_or_path')
         except Exception as error:
-            self.log('error', f"could not compare {source} with {self.config.model_name}: {type(error).__name__}: {error}")
-            return False
-        if trained != base:
-            self.log('info', f"{source} was fine-tuned from {'/'.join(trained)}, not {'/'.join(base)}; training again")
-        return trained == base
+            self.log('error', f"could not inspect {source}: {type(error).__name__}: {error}")
+            return None
 
-    def resolve_source(self):
+    def resolve_adapter(self):
         cfg = self.config
         if cfg.train:
-            return cfg.model_name
-        if self.is_trained() and self.same_family(cfg.out_dir):
-            return cfg.out_dir
-        if self.on_hub() and self.same_family(cfg.hf_repo):
-            return cfg.hf_repo
-        return cfg.model_name
+            return None
+        for source in (cfg.out_dir, cfg.hf_repo):
+            if not source:
+                continue
+            base = self.adapter_base(source)
+            if base == cfg.model_name:
+                return source
+            if base is not None:
+                self.log('info', f"adapter at {source} was trained on {base}, not {cfg.model_name}; training again")
+        return None
 
-    def load(self, system_prompt=''):
+    # --- loading ---
+
+    def load_base(self):
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
         cfg = self.config
-        torch.manual_seed(cfg.seed)
-        self.source = self.resolve_source()
-        self.log('model', f"loading {self.source} on {cfg.device}")
-        self.tokenizer = AutoTokenizer.from_pretrained(self.source)
+        cuda = cfg.device.startswith('cuda')
+        dtype = torch.float16 if cuda else torch.float32
+        self.tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        self.model = AutoModelForCausalLM.from_pretrained(self.source).float().to(cfg.device)
-        if self.source == cfg.model_name:
+        try:
+            model = AutoModelForCausalLM.from_pretrained(cfg.model_name, dtype=dtype)
+        except ValueError:
+            # Vision-language checkpoints (e.g. Ministral 3) register under the image-text class; text-only use is fine.
+            from transformers import AutoModelForImageTextToText
+            model = AutoModelForImageTextToText.from_pretrained(cfg.model_name, dtype=dtype)
+        self.model = model.to(cfg.device)
+
+    def load(self, system_prompt=''):
+        import torch
+        cfg = self.config
+        torch.manual_seed(cfg.seed)
+        adapter = self.resolve_adapter()
+        self.log('model', f"loading {cfg.model_name} on {cfg.device}" + (f" with adapter {adapter}" if adapter else ''))
+        self.load_base()
+        if adapter is None:
             self.finetune(system_prompt)
+        else:
+            from peft import PeftModel
+            self.model = PeftModel.from_pretrained(self.model, adapter).merge_and_unload()
+            self.source = adapter
         self.model.eval()
         return self
 
-    def trainable_parameters(self):
-        layers = self.config.train_layers
-        if layers <= 0:
-            return list(self.model.parameters())
-        self.model.requires_grad_(False)
-        modules = list(self.model.model.layers[-layers:]) + [self.model.model.norm]
-        for module in modules:
-            module.requires_grad_(True)
-        return [p for module in modules for p in module.parameters()]
+    # --- fine-tuning ---
+
+    def lora_targets(self):
+        import torch
+        names = []
+        for name, module in self.model.named_modules():
+            if isinstance(module, torch.nn.Linear) and name.split('.')[-1] in LORA_TARGETS \
+                    and 'vision' not in name and 'multi_modal' not in name:
+                names.append(name)
+        return names
+
+    def set_cache(self, enabled):
+        for config in (self.model.config, getattr(self.model.config, 'text_config', None)):
+            if config is not None:
+                config.use_cache = enabled
 
     def finetune(self, system_prompt):
         import torch
+        from peft import LoraConfig, get_peft_model
         from torch.utils.data import DataLoader
         from model.data import ConversationDataset, ConversationFile
         cfg = self.config
         conversations = ConversationFile(cfg.data_path, system_prompt).load()
         dataset = ConversationDataset(conversations, self.tokenizer, cfg.max_length)
         loader = DataLoader(dataset, batch_size=cfg.batch_size, shuffle=True, collate_fn=dataset.collate)
-        params = self.trainable_parameters()
-        optimizer = torch.optim.AdamW(params, lr=cfg.learning_rate)
         cuda = cfg.device.startswith('cuda')
+        self.set_cache(False)
+        self.model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={'use_reentrant': False})
+        self.model.enable_input_require_grads()
+        lora = LoraConfig(r=cfg.lora_rank, lora_alpha=cfg.lora_alpha, lora_dropout=cfg.lora_dropout,
+                          target_modules=self.lora_targets(), task_type='CAUSAL_LM')
+        peft_model = get_peft_model(self.model, lora)  # adapters are fp32 even when the base is fp16
+        params = [p for p in peft_model.parameters() if p.requires_grad]
+        optimizer = torch.optim.AdamW(params, lr=cfg.learning_rate)
         scaler = torch.amp.GradScaler('cuda', enabled=cuda)
         autocast = torch.autocast('cuda', dtype=torch.float16) if cuda else nullcontext()
-        # Non-reentrant checkpointing works with frozen embeddings.
-        self.model.config.use_cache = False
-        self.model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={'use_reentrant': False})
-        self.log('model', f"fine-tuning on {len(dataset)} conversations for {cfg.epochs} epochs, "
-                          f"{sum(p.numel() for p in params) / 1e6:.0f}M trainable parameters")
-        self.model.train()
+        self.log('model', f"fine-tuning LoRA (r={cfg.lora_rank}) on {len(dataset)} conversations for {cfg.epochs} epochs, "
+                          f"{sum(p.numel() for p in params) / 1e6:.1f}M trainable parameters")
+        peft_model.train()
         step = 0
         for epoch in range(cfg.epochs):
             started = time.time()
             for i, batch in enumerate(loader, 1):
                 batch = {k: v.to(cfg.device) for k, v in batch.items()}
                 with autocast:
-                    loss = self.model(**batch).loss / cfg.accumulation
+                    loss = peft_model(**batch).loss / cfg.accumulation
                 scaler.scale(loss).backward()
                 if i % cfg.accumulation == 0 or i == len(loader):
                     scaler.unscale_(optimizer)
@@ -137,28 +161,34 @@ class SaturdayChat(ChatBackend):
                     self.log('model', f"epoch {epoch + 1}/{cfg.epochs} step {step}: "
                                       f"loss {loss.item() * cfg.accumulation:.4f} ({time.time() - started:.0f}s)")
                     started = time.time()
+        peft_model.eval()
         self.model.gradient_checkpointing_disable()
-        self.model.config.use_cache = True
-        self.model.eval()
-        self.model.requires_grad_(False)
-        # fp16 on disk halves the size; load() upcasts to fp32 again.
-        self.model.half().save_pretrained(cfg.out_dir)
+        self.set_cache(True)
+        peft_model.save_pretrained(cfg.out_dir)
         self.tokenizer.save_pretrained(cfg.out_dir)
-        self.log('model', f"saved fine-tuned model to {cfg.out_dir}")
+        self.log('model', f"saved adapter to {cfg.out_dir}")
         if cfg.hf_repo:
-            self.push()
-        self.model.float()
+            self.push(peft_model)
+        self.model = peft_model.merge_and_unload()
+        self.model.requires_grad_(False)
         self.source = cfg.out_dir
 
-    def push(self):
+    def push(self, peft_model):
         repo = self.config.hf_repo
-        self.log('model', f"pushing fine-tuned model to {repo}")
+        self.log('model', f"pushing adapter to {repo}")
         try:
-            self.model.push_to_hub(repo, private=True)
+            peft_model.push_to_hub(repo, private=True)
             self.tokenizer.push_to_hub(repo, private=True)
+            from huggingface_hub import HfApi
+            api = HfApi()
+            for name in STALE_HUB_FILES:
+                if api.file_exists(repo, name):
+                    api.delete_file(name, repo, commit_message=f'remove stale {name}')
             self.log('model', f"pushed to https://huggingface.co/{repo}")
         except Exception as error:
             self.log('error', f"push to {repo} failed (is HF_TOKEN set with write access?): {type(error).__name__}: {error}")
+
+    # --- inference ---
 
     def generation_kwargs(self):
         cfg = self.config

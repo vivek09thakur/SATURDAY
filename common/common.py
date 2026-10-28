@@ -35,10 +35,12 @@ class Config:
     model_name: str = BASE_MODEL
     out_dir: str = OUT_DIR
     data_path: str = CONVERSATIONS_PATH
-    train: bool = False  # force a fine-tune even if a trained model exists
-    train_layers: int = 6  # only the last N transformer blocks are trained; 0 = all
+    train: bool = False  # force a fine-tune even if a trained adapter exists
+    lora_rank: int = 16  # LoRA on attention + MLP projections of the language model; 0 trains nothing but fails fast
+    lora_alpha: int = 32
+    lora_dropout: float = 0.05
     epochs: int = 3
-    learning_rate: float = 1e-4
+    learning_rate: float = 2e-4
     batch_size: int = 1
     accumulation: int = 2  # optimizer step every N batches
     max_length: int = 1024

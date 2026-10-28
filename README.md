@@ -2,8 +2,9 @@
 
 A personal voice assistant with a small language model behind it. Say something, Saturday answers out loud and, when needed, does things on your computer: opens sites, plays YouTube, checks the weather, sends email, shuts the PC down.
 
-- **Brain**: [Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct), fine-tuned on
-  `data/conversations.txt` so it talks like Saturday and knows how to call tools.
+- **Brain**: [Ministral 3 3B Instruct](https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512-BF16) with a
+  LoRA adapter trained on `data/conversations.txt`, so it talks like Saturday and knows how to call tools.
+  (The checkpoint also carries a small vision tower; Saturday only uses the text side. Needs `transformers>=5`.)
 - **Ears / voice**: `faster-whisper` (offline speech-to-text) and `edge-tts` (text-to-speech).
 - **Hands**: plugins in `plugins/`. The model emits `<tool_call>{"name": ..., "arguments": {...}}</tool_call>`, the
   plugin runs on your machine, the result goes back to the model, and it answers.
@@ -43,7 +44,7 @@ python main.py adduser                              # who Saturday should recogn
 
 | Key | Used by |
 |---|---|
-| `HF_REPO`, `HF_TOKEN` | Keeps the fine-tuned model on the Hugging Face Hub so Colab runs skip training. Token needs *write* scope. |
+| `HF_REPO`, `HF_TOKEN` | Keeps the trained LoRA adapter (a few tens of MB) on the Hugging Face Hub so Colab runs skip training. Token needs *write* scope. |
 | `OPENWEATHER_API_KEY` | `weather` tool ([free key](https://openweathermap.org/api)) |
 | `SMTP_EMAIL`, `SMTP_PASSWORD` | `send_email` tool. For Gmail use an [App Password](https://myaccount.google.com/apppasswords). |
 
@@ -90,27 +91,29 @@ is always on; **Ctrl+T** opens a chat bar for typing (Esc closes it), **Ctrl+C**
 What `python main.py` does, step by step:
 
 1. Zips the repo (without `.env`, `contacts.json`, weights) and uploads it to a fresh Colab T4 session.
-2. On the VM starts `main.py model`. The model is loaded from the first of: local `out-saturday/` → `HF_REPO` on the
-   Hub → base Qwen2.5. A saved fine-tune is only reused if it was built on the same architecture as the configured
-   base model (so changing `--model_name` family retrains automatically). If it had to fall back to the base model it
-   **fine-tunes right there**, saves, and pushes to
-   `HF_REPO` if set (~10–15 min on a T4 the first time; later runs skip this).
+2. On the VM starts `main.py model`. It loads the base model and looks for a LoRA adapter in: local `out-saturday/`
+   → `HF_REPO` on the Hub. An adapter is only reused if its `adapter_config.json` says it was trained on the
+   configured base model (so changing `--model_name` retrains automatically). With no usable adapter it
+   **fine-tunes right there**, saves the adapter, pushes it to `HF_REPO` if set (~10 min on a T4 the first time;
+   later runs skip this) and merges it into the base weights for inference.
 3. Opens `ssh -L 8001` to the VM and runs `main.py talk --model_url=http://127.0.0.1:8001` locally.
 4. On exit closes the tunnel and stops the VM.
 
 ### Fine-tune
 
 ```powershell
-python main.py finetune                    # on Colab; result pushed to HF_REPO, or downloaded to out-saturday/ if unset
-python main.py finetune --local            # on this machine
-python main.py finetune --train            # force a retrain even if a trained model exists
-python main.py finetune --epochs=5 --learning_rate=5e-5 --train_layers=0   # all layers, more epochs
+python main.py finetune                    # on Colab; adapter pushed to HF_REPO, or downloaded to out-saturday/ if unset
+python main.py finetune --local            # on this machine (needs a GPU with ~10 GB for the 3B model)
+python main.py finetune --train            # force a retrain even if a trained adapter exists
+python main.py finetune --epochs=5 --learning_rate=1e-4 --lora_rank=32   # bigger adapter, more epochs
 ```
 
 Training data is `data/conversations.txt`: `User:` / `Saturday:` / `Tool:` lines, conversations separated by `---`.
-An optional first line `Context: ...` (who is talking, the time, in the same wording the app uses) teaches the model to
-use the identity line it gets at runtime.
-Edit it, run `finetune`, done. Keep tool examples in the exact `<tool_call>` JSON shape the plugins expect.
+Every conversation starts with a `Context: ...` line in exactly the wording the app injects at runtime (who is
+talking, their title, the time), so the model learns to use it: owner vs. family vs. guest, time-aware greetings,
+answering the time and date straight from context. Tool examples cover each plugin's success, error, denial and
+owner-only cases in the exact `<tool_call>` JSON shape the plugins expect, plus a few "I can't do that" examples.
+Edit it, run `finetune`, done.
 
 ### Model server only
 
@@ -134,7 +137,7 @@ colab stop -s saturday                     # stop a kept session by hand
 Any field of `Config` in `common/common.py` can be set with `--name=value`:
 
 ```powershell
---model_name=Qwen/Qwen2.5-0.5B-Instruct             # smaller/faster model (weaker at tool calls)
+--model_name=Qwen/Qwen2.5-1.5B-Instruct             # lighter base model (any HF chat model with a tool/system-aware template)
 --whisper_model=small.en                            # tiny.en / base.en (default) / small.en / medium.en
 --voice=en-US-GuyNeural                             # any edge-tts voice (default en-IN-PrabhatNeural)
 --temperature=0                                     # greedy decoding

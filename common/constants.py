@@ -25,13 +25,13 @@ TOOL_PROMPT = (
 )
 
 # --- model ----------------------------------------------------------------------------------------
-BASE_MODEL = 'Qwen/Qwen2.5-1.5B-Instruct'  # native <tool_call> support; Qwen2.5-0.5B-Instruct is faster on CPU
-OUT_DIR = 'out-saturday'  # fine-tuned model (HF format)
+BASE_MODEL = 'mistralai/Ministral-3-3B-Instruct-2512-BF16'  # Apache-2.0; needs transformers>=5. Qwen/Qwen2.5-1.5B-Instruct is lighter
+OUT_DIR = 'out-saturday'  # LoRA adapter trained on data/conversations.txt (HF PEFT format)
 SEED = 1337
 IGNORE_INDEX = -100
 MODEL_HOST = '127.0.0.1'
 MODEL_PORT = 8001
-HF_REPO_ENV = 'HF_REPO'  # e.g. your-user/saturday; the fine-tuned model is pushed here so Colab runs can skip training
+HF_REPO_ENV = 'HF_REPO'  # e.g. your-user/saturday; the trained LoRA adapter is pushed here so Colab runs can skip training
 REMOTE_ENV = ('HF_TOKEN', HF_REPO_ENV)  # the only .env values forwarded to the Colab VM
 
 # --- colab ----------------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ REMOTE_OUT_ZIP = '/content/saturday-out.zip'
 REMOTE_LOG = '/content/saturday-model.log'
 REMOTE_OK = '__SATURDAY_OK__'  # printed by every remote script on success; IPython swallows exit codes
 REMOTE_STARTED = '__SATURDAY_STARTED__'  # first line of every remote script: distinguishes our failures from the CLI's
-REMOTE_PACKAGES = ('transformers>=4.45', 'huggingface_hub')  # torch/numpy/requests are preinstalled on Colab
+REMOTE_PACKAGES = ('transformers>=5.0.0', 'peft>=0.15', 'huggingface_hub')  # torch/numpy/requests are preinstalled on Colab
 REMOTE_TIMEOUT = 3 * 3600
 TRANSIENT_ERRORS = ('WebSocketConnectionClosedException', 'socket is already closed', 'Connection is already closed',
                     'ConnectionResetError', 'TimeoutError')
