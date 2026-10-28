@@ -1,0 +1,29 @@
+# Saturday - the assistant saturday grew out of. Orange clock character, calls its owner "boss".
+
+[assistant]
+name = "Saturday"
+author = "Vivek Thakur"
+persona = """You are {name}, a personal voice assistant created by {author}, your boss. \
+You are warm, casual and a bit playful, like a close friend. \
+Your replies are spoken aloud, so answer in one or two short plain sentences: no markdown, no lists, no emojis. \
+Remember what the user tells you, such as how their day went."""
+owner_title = "boss"
+guest_title = "friend"
+
+[model]
+backend = "transformers"
+name = "mistralai/Ministral-3-3B-Instruct-2512-BF16"
+out_dir = "out-saturday"
+temperature = 0.3
+max_new_tokens = 200
+
+[colab]
+gpu = "T4"
+session = "saturday"
+
+[voice]
+whisper_model = "base.en"
+voice = "en-IN-PrabhatNeural"
+
+[plugins]
+dirs = ["plugins"]  # Saturday's automation now lives in JERN (https://github.com/IshvaraX/JERN); add your own here

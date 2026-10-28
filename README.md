@@ -1,178 +1,156 @@
-# Saturday
+﻿# Saturday
 
-A personal voice assistant with a small language model behind it. Say something, Saturday answers out loud and, when needed, does things on your computer: opens sites, plays YouTube, checks the weather, sends email, shuts the PC down.
+A small framework for building your own voice assistant on a **small language model** that runs on your own
+hardware (or a free Colab GPU). You describe a persona, write a few dozen example conversations, optionally add
+tools, and Saturday handles the rest: LoRA fine-tuning, speech in and out, who-is-talking logins, and the model
+server / SSH tunnel dance when the GPU lives on Colab.
 
-- **Brain**: [Ministral 3 3B Instruct](https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512-BF16) with a
-  LoRA adapter trained on `data/conversations.txt`, so it talks like Saturday and knows how to call tools.
-  (The checkpoint also carries a small vision tower; Saturday only uses the text side. Needs `transformers>=5`.)
-- **Ears / voice**: `faster-whisper` (offline speech-to-text) and `edge-tts` (text-to-speech).
-- **Hands**: plugins in `plugins/`. The model emits `<tool_call>{"name": ..., "arguments": {...}}</tool_call>`, the
-  plugin runs on your machine, the result goes back to the model, and it answers.
-
-By default the **model runs on a Colab GPU** and everything else (microphone, speaker, tools) runs locally, talking to
-the model over an SSH tunnel. `--local` runs the model on your machine instead.
-
-The original 2023 version (bag-of-words intent classifier + keyword automations) lives on the `master` branch.
-
-## Layout
-
-```
-main.py            entry point
-common/            constants.py (identity, persona, model id), common.py (Config + CLI flags), utils.py
-controls/voice.py  Listener (mic → whisper), Speaker (edge-tts → speakers), TextIO (keyboard)
-controls/tui.py    terminal UI: left panel = menu + conversation (always listening), right panel = the lively clock
-plugins/           one Plugin subclass per tool; dropped in a module here = auto-discovered
-model/             chat.py (load / fine-tune / generate, RemoteChat), assistant.py (tool-call loop),
-                   server.py (model HTTP server), colab.py (runs the model on Colab), data.py
-data/              conversations.txt (training data), contacts.json (your contacts, gitignored)
-```
-
-## Setup
+It grew out of a 2023 hobby assistant called Saturday; that assistant is now the example project in
+[examples/saturday](examples/saturday), and its automation lives in [JERN](https://github.com/IshvaraX/JERN),
+which is itself built on this framework.
 
 ```powershell
-git clone git@github.com:vivek09thakur/SATURDAY.git
-cd SATURDAY
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-copy .env.example .env          # then fill it in (see below)
-copy data\contacts.example.json data\contacts.json   # names + emails for send_email
-python main.py adduser                              # who Saturday should recognise (see Users below)
+pip install "saturday-ai"               # import name and CLI: saturday
+saturday init friday --name=Friday      # scaffold a project
+cd friday
+saturday talk --text                    # type to it; the first run fine-tunes on Colab (~10 min on a T4)
+saturday talk                           # voice: microphone in, speech out
 ```
 
-`.env` keys (all optional; a tool that needs a missing key just reports an error):
+## What you get
 
-| Key | Used by |
-|---|---|
-| `HF_REPO`, `HF_TOKEN` | Keeps the trained LoRA adapter (a few tens of MB) on the Hugging Face Hub so Colab runs skip training. Token needs *write* scope. |
-| `OPENWEATHER_API_KEY` | `weather` tool ([free key](https://openweathermap.org/api)) |
-| `SMTP_EMAIL`, `SMTP_PASSWORD` | `send_email` tool. For Gmail use an [App Password](https://myaccount.google.com/apppasswords). |
-
-For the Colab default you also need, once:
-
-```powershell
-colab sessions        # google-colab-cli is in requirements.txt; first call opens the Google sign-in
-```
-
-and the OpenSSH client (`ssh`), built into Windows 10+ / macOS / Linux.
-
-## Commands
-
-### Talk to Saturday
-
-```powershell
-python main.py                 # model on Colab GPU, voice + tools here (default)
-python main.py --text          # same, but type instead of speaking
-python main.py --tui           # same, in the terminal UI with the clock character; add --text for keyboard only
-python main.py --local         # model on this machine (needs a GPU or patience)
-python main.py --local --text  # everything local, keyboard only
-```
-
-Say **bye** (or Ctrl+C) to stop. Tools that change something (`shutdown`, `send_email`) ask first; answer *yes* / *no*.
-
-### Users
-
-Saturday asks *"Who am I talking to?"* when it starts (say or type a name) and looks it up in `data/users.json`
-(gitignored; see `data/users.example.json`). Register people with `python main.py adduser`: a name, aliases, how
-Saturday should address them (`boss`, `ma'am`, their first name), a role (`owner` / `family` / `friend` / `guest`) and an
-optional PIN (stored salted + hashed; asked by keyboard only). Unknown names become guests.
-
-- The identity and current time are added to the model's system prompt every turn, so it knows who it is talking to
-  and whether it is night.
-- Tools that need confirmation (`shutdown`, `send_email`) are **owner-only**; everyone else gets a polite refusal.
-- `--user=vivek` skips the question (a PIN, if set, is still asked).
-
-The terminal UI (`--tui`, built with [Textual](https://textual.textualize.io/)) is two columns: on the left a panel that shows what Saturday can do, the live
-status and the conversation; on the right Saturday as a little rubber-hose clock, drawn with half-block pixels so the
-dial is a true circle. It drifts around, blinks, glances, taps a foot, hops, waves while listening, scratches its head
-while thinking and flaps its mouth while talking. Replies are typed out character by character. The mic
-is always on; **Ctrl+T** opens a chat bar for typing (Esc closes it), **Ctrl+C** or *bye* exits.
-
-What `python main.py` does, step by step:
-
-1. Zips the repo (without `.env`, `contacts.json`, weights) and uploads it to a fresh Colab T4 session.
-2. On the VM starts `main.py model`. It loads the base model and looks for a LoRA adapter in: local `out-saturday/`
-   → `HF_REPO` on the Hub. An adapter is only reused if its `adapter_config.json` says it was trained on the
-   configured base model (so changing `--model_name` retrains automatically). With no usable adapter it
-   **fine-tunes right there**, saves the adapter, pushes it to `HF_REPO` if set (~10 min on a T4 the first time;
-   later runs skip this) and merges it into the base weights for inference.
-3. Opens `ssh -L 8001` to the VM and runs `main.py talk --model_url=http://127.0.0.1:8001` locally.
-4. On exit closes the tunnel and stops the VM.
-
-### Fine-tune
-
-```powershell
-python main.py finetune                    # on Colab; adapter pushed to HF_REPO, or downloaded to out-saturday/ if unset
-python main.py finetune --local            # on this machine (needs a GPU with ~10 GB for the 3B model)
-python main.py finetune --train            # force a retrain even if a trained adapter exists
-python main.py finetune --epochs=5 --learning_rate=1e-4 --lora_rank=32   # bigger adapter, more epochs
-```
-
-Training data is `data/conversations.txt`: `User:` / `Saturday:` / `Tool:` lines, conversations separated by `---`.
-Every conversation starts with a `Context: ...` line in exactly the wording the app injects at runtime (who is
-talking, their title, the time), so the model learns to use it: owner vs. family vs. guest, time-aware greetings,
-answering the time and date straight from context. Tool examples cover each plugin's success, error, denial and
-owner-only cases in the exact `<tool_call>` JSON shape the plugins expect, plus a few "I can't do that" examples.
-Edit it, run `finetune`, done.
-
-### Model server only
-
-```powershell
-python main.py model --local               # serve POST /generate on 127.0.0.1:8001 (this is what the VM runs)
-python main.py talk --model_url=http://127.0.0.1:8001   # point a local Saturday at any model server
-```
-
-### Colab options
-
-```powershell
-python main.py --gpu=L4                    # T4 (default), L4, A100, or --gpu='' for a CPU runtime
-python main.py --keep                      # leave the VM running after exit
-python main.py --reuse                     # attach to the existing 'saturday' session instead of creating one
-python main.py --session=other-name
-colab stop -s saturday                     # stop a kept session by hand
-```
-
-### Useful overrides
-
-Any field of `Config` in `common/common.py` can be set with `--name=value`:
-
-```powershell
---model_name=Qwen/Qwen2.5-1.5B-Instruct             # lighter base model (any HF chat model with a tool/system-aware template)
---whisper_model=small.en                            # tiny.en / base.en (default) / small.en / medium.en
---voice=en-US-GuyNeural                             # any edge-tts voice (default en-IN-PrabhatNeural)
---temperature=0                                     # greedy decoding
---max_history=10                                    # user turns kept in context
---silence_seconds=2 --listen_timeout=15             # mic: pause that ends an utterance / how long to wait for speech
-```
-
-## Tools
-
-| Tool | What it does | Asks first |
+| Piece | Where | Notes |
 |---|---|---|
-| `open_website(site)` | Opens a known site (`gmail`, `github`, `youtube`, `whatsapp`, …) or a URL | |
-| `search_web(query)` | Google search in the browser | |
-| `play_youtube(query)` | Plays the first matching video | |
-| `search_location(place)` | Google Maps | |
-| `weather(city)` | Current weather via OpenWeather | |
-| `current_time()` | Date and time | |
-| `system_info()` | OS, computer and user name | |
-| `connected_devices()` | Devices on the LAN (`arp -a`) | |
-| `close_tab()` | Ctrl+W in the browser | |
-| `send_email(contact, subject, body)` | SMTP to a contact from `data/contacts.json` | yes |
-| `shutdown()` | Shuts the computer down | yes |
+| Project config | `saturday.toml` | name, persona, model, voice, plugins; any key is also a `--flag` |
+| Training data | `data/conversations.txt` | plain text; `User:` / `<Name>:` / `Tool:` lines, `---` between conversations |
+| Fine-tuning | `saturday.models.transformers` | LoRA (peft) on any Hugging Face chat model; adapter pushed to the Hub |
+| Local inference | `backend = "gguf"` | llama.cpp quantized models on a laptop CPU, no training step |
+| Voice | `saturday.voice` | faster-whisper in, edge-tts out, silence-based turn taking |
+| Users | `saturday adduser` | names, aliases, how to address each person, optional PIN; guests get a safe prompt |
+| Tools | `plugins/*.py` | subclass `saturday.plugins.Plugin`; the model calls them with `<tool_call>` JSON |
+| Colab | `saturday.colab` | zips project + framework, provisions a T4, runs the model server, tunnels it home |
+| Library | `saturday.assistant` | `Assistant` loop with hooks, `Session`, `ToolCall`; build your own UI on it |
 
-Adding one: create a `Plugin` subclass in any module under `plugins/` with `name`, `description`, `parameters`,
-`required`, optional `confirm = True`, and a `run(**arguments)` returning a string. Then add a couple of examples to
-`data/conversations.txt` and fine-tune.
+Saturday ships **no tools of its own**. The scaffold includes one example (`roll_dice`); real automation belongs
+in your project or in an application like JERN.
+
+## A project
+
+```
+friday/
+  saturday.toml             identity, model, voice, plugins
+  data/conversations.txt    how Friday talks (the fine-tune learns from this)
+  data/users.json           who Friday recognises (created by `saturday adduser`, gitignored)
+  plugins/example.py        a tool; add more files, each with Plugin subclasses
+  .env                      HF_REPO / HF_TOKEN and anything your plugins need (gitignored)
+```
+
+Every command runs inside a project (the nearest folder upwards holding `saturday.toml`, or `--root=path`):
+
+```powershell
+saturday check              # validate config, data and plugins without loading a model
+saturday adduser            # register a person (owner / family / friend / guest, title, PIN)
+saturday talk               # model on Colab, voice and tools here
+saturday talk --local       # model on this machine (pip install "saturday-ai[local]")
+saturday talk --text        # keyboard instead of microphone
+saturday finetune           # retrain after editing conversations.txt (Colab; --local to do it here)
+saturday model --local      # just the model server on 127.0.0.1:8001 (what the Colab VM runs)
+saturday --key=value        # override any setting, e.g. --temperature=0.5 --model_name=Qwen/Qwen2.5-1.5B-Instruct
+```
+
+### saturday.toml
+
+```toml
+[assistant]
+name = "Friday"
+author = "Jane Doe"
+persona = """You are {name}, a personal voice assistant created by {author}, your boss. ..."""
+owner_title = "boss"          # how the owner is addressed; others get the title from users.json
+
+[model]
+backend = "transformers"      # or "gguf" for llama.cpp on CPU (inference only)
+name = "mistralai/Ministral-3-3B-Instruct-2512-BF16"
+temperature = 0.3
+
+[colab]
+gpu = "T4"
+exclude = ["docs"]            # extra folders kept out of the upload
+
+[voice]
+whisper_model = "base.en"
+voice = "en-IN-PrabhatNeural"
+
+[plugins]
+dirs = ["plugins"]
+# registry = "myapp.tools:ToolRegistry"   # an application can hand Saturday its own tool registry
+
+[app]                          # free-form: an application's own settings, reachable as config.<key> and --<key>
+```
+
+Keys map onto `saturday.config.Config`: `[model] name` is `model_name`, `[voice] voice` is `voice`, and so on.
+
+### Training data
+
+```
+Context: You are talking to Jane (owner, your creator). Address them as 'boss'. It is Monday 02 November 2026, 09:12 AM.
+User: Roll a die.
+Friday: <tool_call>{"name": "roll_dice", "arguments": {"sides": "6"}}</tool_call>
+Tool: rolled a 4 on a 6-sided die
+Friday: You rolled a four boss.
+---
+```
+
+The `Context:` line is exactly what Saturday appends to the system prompt at runtime (from `users.json` and the
+clock), so the model learns to use it: titles, guest etiquette, the time and date. Only assistant turns contribute
+to the loss. Run `saturday check` after editing; it warns about tool calls to tools you do not have.
+
+### Models
+
+- **transformers** (default): base model + LoRA adapter (rank 16 on the language-model projections). The adapter
+  is looked up in `out-adapter/`, then on the Hub at `HF_REPO`; it is reused only if `adapter_config.json` names
+  the configured base model, otherwise a fresh one is trained (3 epochs, fp16 autocast). Ministral 3 3B needs
+  `transformers>=5`; `Qwen/Qwen2.5-1.5B-Instruct` is a lighter choice.
+- **gguf**: `llama-cpp-python` with any GGUF repo, e.g. `name = "Qwen/Qwen2.5-1.5B-Instruct-GGUF"`,
+  `file = "*q4_k_m.gguf"`. Persona comes from the system prompt; runs on CPU; always local.
+- **remote**: `--model_url=http://host:8001` points the assistant at a running `saturday model` server.
+
+### Building an application on it
+
+```python
+from saturday.assistant import Assistant, Session
+from saturday.config import configure
+from saturday.plugins import registry
+
+config = configure(flags, root)              # saturday.toml + --flags; config.<key> for your [app] settings
+assistant = Assistant(config, registry(config), log)
+reply, pending = assistant.respond(Session(user), "hello")
+```
+
+`Assistant` exposes hooks to override: `rewrite()` a tool call before it runs, `run_arguments()` for extra keyword
+arguments a plugin needs, `note()` to collect a per-turn timeline, `confirm_question()` / `give_up()` for wording,
+`load_chat()` for how the model is obtained. `saturday.colab.ColabRunner.serve(flags, local_argv)` runs the model on
+Colab and your own command here against the tunnel. JERN is the worked example.
+
+## Install
+
+```powershell
+pip install "saturday-ai"               # voice + Colab flow (model runs on Colab)
+pip install "saturday-ai[local]"        # + torch, transformers>=5, peft: run or fine-tune on this machine
+pip install "saturday-ai[gguf]"         # + llama-cpp-python
+```
+
+Colab needs `colab` (installed with the package) signed in once (`colab auth`), and an `ssh` client for the tunnel
+(on Windows: the OpenSSH Client optional feature). Set `HF_REPO` and `HF_TOKEN` (write scope) in `.env` so the
+trained adapter survives the VM.
+
+Development: `pip install -e . --no-deps && python -m unittest discover -s tests`.
 
 ## Troubleshooting
 
-- **`CERTIFICATE_VERIFY_FAILED` from edge-tts / Hugging Face / the colab CLI** – you are behind a TLS-inspecting proxy.
-  Saturday calls `truststore.inject_into_ssl()` at startup so Python trusts the OS certificate store; make sure
-  `truststore` is installed (`pip install -r requirements.txt`). The colab CLI additionally gets an exported bundle in
-  `export/ca-bundle.pem`; set `REQUESTS_CA_BUNDLE` yourself to override.
-- **`the 'colab' CLI is not installed`** – `pip install google-colab-cli`, or use `--local`.
-- **`could not allocate a runtime`** – Colab quota/capacity; wait, try `--gpu=''`, or `--local`.
-- **`push to <repo> failed`** – `HF_TOKEN` missing or read-only. The model is still saved on the VM for this session.
-- **Nothing is heard** – lower `--silence_threshold` (default `0.01`) or check the default input device.
-- **Speech fails / silent** – `edge-tts` needs internet; the reply is still printed.
+- *Colab refused to allocate a runtime*: free-tier limits; wait, or `--gpu=''` for a CPU runtime, or `--local`.
+- *archive is N MB*: a virtualenv or weights sits in the project; add it to `[colab] exclude`.
+- *CERTIFICATE_VERIFY_FAILED* behind a corporate proxy: Saturday injects the OS trust store (truststore) and ships a
+  CA bundle to the `colab` CLI; make sure the proxy's CA is in the Windows store.
+- *port 8001 already in use*: something else listens there; stop it or pass `--model_port=8002`.
+- *the model says "Tool result" to me*: some GGUF chat templates reject the `tool` role; Saturday retries with tool
+  results as user turns, which weaker models sometimes echo. Prefer Qwen or Mistral GGUFs.

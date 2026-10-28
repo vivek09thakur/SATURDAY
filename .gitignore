@@ -1,12 +1,29 @@
-**/__pycache__
-**/.vscode
-venv/
-env/
-.env
-legacy/
-out-saturday/
-export/
-data/contacts.json
-data/users.json
+# python
+**/__pycache__/
 *.pyc
-.venv/finetune.log
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# environments
+venv/
+.venv/
+env/
+
+# editors
+.vscode/
+.idea/
+
+# secrets and personal data (any project)
+**/.env
+**/users.json
+**/contacts.json
+
+# trained adapters, exports, logs
+out-*/
+export/
+*.log
+
+# the 2023 version of Saturday (kept locally, on the `master` branch upstream)
+legacy/

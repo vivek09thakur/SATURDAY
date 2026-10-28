@@ -1,0 +1,14 @@
+# secrets and personal data
+.env
+data/users.json
+
+# trained adapter, Colab upload staging, logs
+out-*/
+export/
+*.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/

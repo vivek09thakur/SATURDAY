@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "saturday-ai"  # import name and CLI are `saturday`; the bare PyPI name belongs to an unrelated SDK
+version = "0.1.0"
+description = "Build your own voice assistant on a small language model: persona, LoRA fine-tune, tools, Colab or local."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [{ name = "Vivek Thakur" }]
+keywords = ["voice assistant", "small language model", "lora", "llama.cpp", "transformers"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "requests",
+    "truststore",
+    "huggingface_hub",
+    "numpy",
+    "faster-whisper",
+    "sounddevice",
+    "soundfile",
+    "edge-tts",
+    "google-colab-cli",
+]
+
+[project.optional-dependencies]
+local = ["torch", "transformers>=5.0.0", "peft>=0.15"]  # run or fine-tune the transformers backend on this machine
+gguf = ["llama-cpp-python"]                              # llama.cpp backend (CPU-friendly quantized models)
+all = ["saturday-ai[local,gguf]"]
+
+[project.scripts]
+saturday = "saturday.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/vivek09thakur/SATURDAY"
+
+[tool.setuptools.packages.find]
+include = ["saturday*"]
+
+[tool.setuptools.package-data]
+saturday = ["templates/*"]

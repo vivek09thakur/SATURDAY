@@ -1,0 +1,41 @@
+# __NAME__ - an saturday project. Everything here is optional; defaults live in saturday/config.py.
+# Any value can also be overridden on the command line: saturday talk --temperature=0.5
+
+[assistant]
+name = "__NAME__"
+author = "__AUTHOR__"
+# System prompt. {name} and {author} are filled in. Keep it spoken-style: short, no markdown.
+persona = """You are {name}, a personal voice assistant created by {author}, your boss. \
+You are warm, casual and a bit playful, like a close friend. \
+Your replies are spoken aloud, so answer in one or two short plain sentences: no markdown, no lists, no emojis. \
+Remember what the user tells you, such as how their day went."""
+owner_title = "boss"      # how the owner is addressed; other users get the title from data/users.json
+guest_title = "friend"
+# greetings = [[0, "a warm good morning {title}"], [12, "good afternoon {title}"], [18, "good evening {title}"]]
+# goodbye_words = ["bye", "goodbye", "good night", "see you later", "exit", "quit"]
+
+[model]
+# Default: Ministral 3 3B (Apache-2.0) fine-tuned with LoRA. Needs a GPU, which is why `saturday talk` uses Colab
+# unless you pass --local. Any Hugging Face chat model works, e.g. "Qwen/Qwen2.5-1.5B-Instruct".
+backend = "transformers"
+name = "mistralai/Ministral-3-3B-Instruct-2512-BF16"
+# For a laptop CPU with no training step, use llama.cpp instead (pip install "saturday[gguf]"):
+# backend = "gguf"
+# name = "Qwen/Qwen2.5-1.5B-Instruct-GGUF"
+# file = "*q4_k_m.gguf"
+temperature = 0.3
+max_new_tokens = 200
+# epochs = 3
+# lora_rank = 16
+
+[colab]
+gpu = "T4"                # T4, L4, A100 or "" for a CPU runtime
+# session = "__SLUG__"
+
+[voice]
+whisper_model = "base.en" # tiny.en / base.en / small.en / medium.en
+voice = "en-IN-PrabhatNeural"  # any edge-tts voice: edge-tts --list-voices
+
+[plugins]
+dirs = ["plugins"]        # folders with your own Plugin subclasses (see plugins/example.py)
+# registry = "mypackage.tools:ToolRegistry"  # or hand Saturday a tool registry of your own
